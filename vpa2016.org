@@ -1,0 +1,3026 @@
+# -*- coding: utf-8 -*-
+# -*- mode: org -*-
+
+#+TITLE: Analyzing Dynamic Task-Based Applications on Hybrid Platforms: An Agile Scripting Approach
+#+AUTHOR: Vinícius Garcia Pinto, Luka Stanisic, Arnaud Legrand, Lucas Mello Schnorr, Samuel Thibault, Vincent Danjean
+
+#+STARTUP: overview indent
+#+LANGUAGE: en
+#+OPTIONS: H:3 creator:nil timestamp:nil skip:nil toc:nil num:t ^:nil ~:~
+#+OPTIONS: author:nil title:nil date:nil
+#+TAGS: noexport(n) deprecated(d) ignore(i)
+#+EXPORT_SELECT_TAGS: export
+#+EXPORT_EXCLUDE_TAGS: noexport
+
+* Latex options                                                      :ignore:
+
+#+LATEX_CLASS: IEEEtran
+#+LATEX_CLASS_OPTIONS: [conference,letter,10pt,final]
+#+LATEX_HEADER: \usepackage[utf8]{inputenc}
+#+LATEX_HEADER: \usepackage[T1]{fontenc}
+#+LATEX_HEADER: \usepackage{tabularx}
+
+#+LATEX_HEADER: % \usepackage{palatino}
+#+LATEX_HEADER: \usepackage{booktabs}
+#+LATEX_HEADER: \usepackage{xspace}
+#+LATEX_HEADER: \usepackage{amsmath}
+#+LATEX_HEADER: \usepackage{color}
+#+LATEX_HEADER: \usepackage{todonotes}
+#+LATEX_HEADER: \usepackage{multirow}
+#+LATEX_HEADER: \graphicspath{{../}{img/}{img/}}
+#+LATEX_HEADER: \usepackage{url}\urlstyle{sf}
+#+LATEX_HEADER: \usepackage{fixltx2e}
+#+LATEX_HEADER: \usepackage{DejaVuSansMono}
+#+LATEX_HEADER: \usepackage{ulem}
+#+LATEX_HEADER: \usepackage[font=footnotesize]{subfig}
+
+#+LATEX_HEADER: \AtBeginDocument{
+#+LATEX_HEADER:   \definecolor{pdfurlcolor}{rgb}{0,0,0.6}
+#+LATEX_HEADER:   \definecolor{pdfcitecolor}{rgb}{0,0.6,0}
+#+LATEX_HEADER:   \definecolor{pdflinkcolor}{rgb}{0.6,0,0}
+#+LATEX_HEADER:   \definecolor{light}{gray}{.85}
+#+LATEX_HEADER:   \definecolor{vlight}{gray}{.95}
+#+LATEX_HEADER: }
+#+LATEX_HEADER: \usepackage{relsize}
+#+LATEX_HEADER: \usepackage{color,colortbl}
+#+LATEX_HEADER: \definecolor{gray98}{rgb}{0.98,0.98,0.98}
+#+LATEX_HEADER: \definecolor{gray20}{rgb}{0.20,0.20,0.20}
+#+LATEX_HEADER: \definecolor{gray25}{rgb}{0.25,0.25,0.25}
+#+LATEX_HEADER: \definecolor{gray16}{rgb}{0.161,0.161,0.161}
+#+LATEX_HEADER: \definecolor{gray60}{rgb}{0.6,0.6,0.6}
+#+LATEX_HEADER: \definecolor{gray30}{rgb}{0.3,0.3,0.3}
+#+LATEX_HEADER: \definecolor{bgray}{RGB}{248, 248, 248}
+#+LATEX_HEADER: \definecolor{amgreen}{RGB}{77, 175, 74}
+#+LATEX_HEADER: \definecolor{amblu}{RGB}{55, 126, 184}
+#+LATEX_HEADER: \definecolor{amred}{RGB}{228,26,28}
+#+LATEX_HEADER: \usepackage[procnames]{listings}
+#+LATEX_HEADER: \lstset{ %
+#+LATEX_HEADER:  backgroundcolor=\color{gray98},    % choose the background color; you must add \usepackage{color} or \usepackage{xcolor}
+#+LATEX_HEADER:  basicstyle=\tt\prettysmall,      % the size of the fonts that are used for the code
+#+LATEX_HEADER:  breakatwhitespace=false,          % sets if automatic breaks should only happen at whitespace
+#+LATEX_HEADER:  breaklines=true,                  % sets automatic line breaking
+#+LATEX_HEADER:  showlines=true,                  % sets automatic line breaking
+#+LATEX_HEADER:  captionpos=b,                     % sets the caption-position to bottom
+#+LATEX_HEADER:  commentstyle=\color{gray30},      % comment style
+#+LATEX_HEADER:  extendedchars=true,               % lets you use non-ASCII characters; for 8-bits encodings only, does not work with UTF-8
+#+LATEX_HEADER:  frame=single,                     % adds a frame around the code
+#+LATEX_HEADER:  keepspaces=true,                  % keeps spaces in text, useful for keeping indentation of code (possibly needs columns=flexible)
+#+LATEX_HEADER:  keywordstyle=\color{amblu},       % keyword style
+#+LATEX_HEADER:  procnamestyle=\color{amred},       % procedures style
+#+LATEX_HEADER:  language=C,             % the language of the code
+#+LATEX_HEADER:  numbers=none,                     % where to put the line-numbers; possible values are (none, left, right)
+#+LATEX_HEADER:  numbersep=5pt,                    % how far the line-numbers are from the code
+#+LATEX_HEADER:  numberstyle=\tiny\color{gray20}, % the style that is used for the line-numbers
+#+LATEX_HEADER:  rulecolor=\color{gray20},          % if not set, the frame-color may be changed on line-breaks within not-black text (e.g. comments (green here))
+#+LATEX_HEADER:  showspaces=false,                 % show spaces everywhere adding particular underscores; it overrides 'showstringspaces'
+#+LATEX_HEADER:  showstringspaces=false,           % underline spaces within strings only
+#+LATEX_HEADER:  showtabs=false,                   % show tabs within strings adding particular underscores
+#+LATEX_HEADER:  stepnumber=2,                     % the step between two line-numbers. If it's 1, each line will be numbered
+#+LATEX_HEADER:  stringstyle=\color{amdove},       % string literal style
+#+LATEX_HEADER:  tabsize=2,                        % sets default tabsize to 2 spaces
+#+LATEX_HEADER:  % title=\lstname,                    % show the filename of files included with \lstinputlisting; also try caption instead of title
+#+LATEX_HEADER:  procnamekeys={call}
+#+LATEX_HEADER: }
+#+LATEX_HEADER: \newcommand{\prettysmall}{\fontsize{6}{8}\selectfont}
+
+* Initialization                                                   :noexport:
+#+name: pdfcrop
+#+header: :var file="all_runtime.pdf"
+#+BEGIN_SRC sh :results silent :exports none
+pdfcrop $file
+echo "Cropping done"
+#+END_SRC
+* Data for figures                                                 :noexport:
+** Global variables
+*** Parallel package
+By default, paralell functions use always 2 cores, but we can get the
+number of cores using the function detectCores and set the variable
+mc.cores to this value.
+
+*** Var Definition
+#+name: globalvar
+#+begin_src R :results none :session R3  :noexport:
+require(parallel)
+
+PAR_CORES <- detectCores(all.tests=TRUE, logical=FALSE)
+if(is.na(PAR_CORES)){
+    PAR_CORES <- 1          # because detectCores may return ‘NA’
+}
+#+end_src
+
+** Basic R functions:
+*** Installing libraries
+#+begin_src R :results output :session R3  :noexport:
+mirror = "http://cran.us.r-project.org"
+packages <- c("plyr", "dplyr", "ggplot2", "gtools", "data.table", "gridExtra", "scales", "reshape", "RColorBrewer", "lpSolve", "plotly", "Rcpp", "inline", "dtplyr", "directlabels", "gtable", "knitr", "flexdashboard");
+packages <- packages[sapply(packages, function(x){0==length(find.package(x,quiet=T))})]
+if(length(packages) > 0) 
+    install.packages(packages, repos=mirror)
+#+end_src
+
+*** Loading libraries
+#+name: load_libraries
+#+begin_src R :results output :session R3  :noexport:
+  # Adding necessary libraries
+  library(plyr)
+  library(dplyr)
+  library(ggplot2)
+  library(gtools)
+  library(data.table)
+  library(gridExtra)
+  library(scales)
+  library(reshape)
+  library(parallel)
+  library(RColorBrewer)
+  library(lpSolve)
+  library(plotly)
+  library(Rcpp)
+  library(inline)
+  library(dtplyr)
+  library(grid)
+  library(gtable)
+  library(knitr)
+  library(flexdashboard)
+#+end_src
+
+#+RESULTS: load_libraries
+: Error in library(dtplyr) : there is no package called ‘dtplyr’
+: 
+: Attaching package: ‘directlabels’
+: 
+: The following object is masked from ‘package:reshape’:
+: 
+:     merge_recurse
+
+*** Computing ijk columns
+    This function returns a new dataframe with 3 additional columns
+    representing i, j and k indexes recovered from "tag".
+#+name: compute_ijk
+#+begin_src R :results output :session R3 :exports none  :noexport:
+
+compute_ijk <- function(df){
+	df_ijk = df
+	df_ijk$i="" # n
+	df_ijk$j="" # m
+	df_ijk$k="" # k
+      
+	df_ijk$Tag <- as.character(df_ijk$Tag)
+
+        df_ijk[df_ijk$Value=="dgemm",]$i <- paste("0x",substr(df_ijk[df_ijk$Value=="dgemm",]$Tag, 11, 13), sep="")   #               (((Am * 0x1000) + Cm )* 0x1000 + Cn)     
+        df_ijk[df_ijk$Value=="dgemm",]$j <- paste("0x",substr(df_ijk[df_ijk$Value=="dgemm",]$Tag, 14, 16), sep="")   #                                          kkkiiijjj
+        df_ijk[df_ijk$Value=="dgemm",]$k <- paste("0x",substr(df_ijk[df_ijk$Value=="dgemm",]$Tag,  8, 10), sep="")          
+
+        df_ijk[df_ijk$Value=="dsyrk",]$k <- paste("0x",substr(df_ijk[df_ijk$Value=="dsyrk",]$Tag,  8, 10),  sep="")  #               (((Am * 0x1000) + Cm )* 0x1000 + Cn)
+        df_ijk[df_ijk$Value=="dsyrk",]$i <- paste("0x",substr(df_ijk[df_ijk$Value=="dsyrk",]$Tag, 11, 13),  sep="")  #                                          kkkiiijjj  
+        df_ijk[df_ijk$Value=="dsyrk",]$j <- paste("0x",substr(df_ijk[df_ijk$Value=="dsyrk",]$Tag, 14, 16),  sep="")
+
+        df_ijk[df_ijk$Value=="dtrsm",]$j <- paste("0x",substr(df_ijk[df_ijk$Value=="dtrsm",]$Tag, 14, 16),  sep="")  #                                 (Am * 0x1000 + Bn)
+        df_ijk[df_ijk$Value=="dtrsm",]$k <- paste("0x",substr(df_ijk[df_ijk$Value=="dtrsm",]$Tag, 11, 13),  sep="")  #                                             kkkjjj
+
+        df_ijk[df_ijk$Value=="dpotrf",]$k <- paste("0x",substr(df_ijk[df_ijk$Value=="dpotrf",]$Tag, 14,16),  sep="") #                                (starpu_tag_t) (Am) 
+                                                                                                                     #                                                kkk 
+        df_ijk$i = as.integer(df_ijk$i)
+        df_ijk$j = as.integer(df_ijk$j)
+        df_ijk$k = as.integer(df_ijk$k)
+
+	df_ijk
+}
+
+#+end_src
+
+#+RESULTS: compute_ijk
+
+*** Computing phases 
+#+name: compute_phases
+#+begin_src R :results none :session R3   :noexport:
+compute_phases <- function(df){
+  
+  tmpPhases <- df[grep("dpotrf|dtrsm|dgemm|dsyrk", df$Value),.( JobId, ResourceId, Start, Duration, End, i, j, k, Value)]
+
+  # considering all type of kernels (only one phase per k)
+  phases = data.table(phase = unique(tmpPhases$k))
+  phases$start = lapply(phases$phase, function(v, dataframe) return ( min(dataframe[dataframe$k %in% v,]$Start)  ), dataframe = tmpPhases )
+  phases$end   = lapply(phases$phase, function(v, dataframe) return ( max(dataframe[dataframe$k %in% v,]$End)  ), dataframe = tmpPhases )
+  phases$start = as.numeric(phases$start)
+  phases$end   = as.numeric(phases$end)
+  phases
+}
+#+end_src
+*** Computing dependencies coordinates
+   To plot dependencies edges we need the information about where the
+    dependent task was executed (ResourceId is used as y-axis).
+#+name: compute_dep_coord
+#+begin_src R :results none :session R3  :var gdep=globalvar :noexport:
+
+# this is the original R function
+compute_dep_resourceidR <- function(df, df_all){ 
+  df_dep_xy = df#[,.( JobId, Dependent, ResourceId, Start, End, Value, i, j, k)]
+  
+  #df_dep_xy$ResourceId = as.character(df_dep_xy$ResourceId)
+  
+  tmp1 <- mclapply(df_dep_xy[,Dependent], 
+                   function(id, dataframe){
+                     res <- dataframe[dataframe$JobId == id,.(Start,End, ResourceId)]
+                     if(nrow(res) == 0){
+                       return(data.table(Start = NA, End = NA, ResourceID = NA))
+                     } else {
+                       return(res)
+                     }
+                   }, 
+                   #dataframe = unique(df_dep_xy[,.(JobId, Start, End, ResourceId)]), mc.cores=PAR_CORES) 
+                   dataframe = unique(df_all[,.(JobId, Start, End, ResourceId)]), mc.cores=PAR_CORES) 
+  tmp1 <- simplify2array(tmp1, higher = FALSE)
+  df_dep_xy <- df_dep_xy[, `:=` ( DepStart = tmp1[1,], DepEnd = tmp1[2,], DepResourceId = tmp1[3,] )]
+  
+  df_dep_xy$DepStart = as.numeric(df_dep_xy$DepStart)
+  df_dep_xy$DepEnd = as.numeric(df_dep_xy$DepEnd)
+  
+  df_dep_xy$DepResourceId = unlist(df_dep_xy$DepResourceId)
+  df_dep_xy[DepResourceId == "character(0)"]$DepResourceId = NA
+  
+  setkey(df_dep_xy)
+  df_dep_xy = unique(df_dep_xy)
+  
+  df_dep_xy
+}
+
+# cpp equivalent function to compute_dep_resourceidR
+cppFunction('
+DataFrame compute_dep_resourceidCPP(DataFrame dframe, DataFrame dframeAll){
+  IntegerVector dfdependent = dframe["Dependent"];
+  
+  IntegerVector dfjobid = dframeAll["JobId"];
+  IntegerVector dfresourceid = dframeAll["ResourceId"];
+  NumericVector dfstart = dframeAll["Start"];
+  NumericVector dfend = dframeAll["End"];
+  
+  NumericVector outdepstart(dfdependent.size());
+  NumericVector outdepend(dfdependent.size());
+  IntegerVector outdepresourceid(dfdependent.size());
+  
+  int j = 0;
+  for(IntegerVector::iterator it = dfdependent.begin() ; it != dfdependent.end(); it++, j++){
+    outdepstart[j] = NA_REAL;
+    outdepend[j] = NA_REAL;
+    outdepresourceid[j] = NA_INTEGER;
+    for(int i=0; i<dfjobid.size(); i++){
+      if(*it == dfjobid[i]){
+        outdepstart[j] = dfstart[i];
+        outdepend[j] = dfend[i];
+        outdepresourceid[j] = dfresourceid[i];
+        break;
+      }
+    }
+  }
+  dframe["DepStart"] = outdepstart;
+  dframe["DepEnd"] = outdepend;
+  dframe["DepResourceId"] = outdepresourceid;
+  return(dframe);  
+}
+')
+
+# here we can select R or CPP implementation
+compute_dep_resourceid <- compute_dep_resourceidCPP
+
+#+end_src
+
+#+RESULTS: compute_dep_coord
+
+*** Computing indirect dependencies for each delayed task
+#+name: compute_indirect_dependencies
+#+begin_src R :results output :session R3  :var gdep=globalvar  :noexport:
+
+# tracking all indirect dependencies
+# this is the original R function (but recursive functions in R are too slow)
+trackdepR <- function(jid, df, maxR){
+    if((jid == 0) | (maxR == 0)){ 
+        return ("")
+    } 
+    res <- mclapply(df[JobId == jid ,Dependent], function(j, d,m) trackdepR(j, d, m), d=df, m=(maxR - 1), mc.cores=PAR_CORES)
+    return( c(jid, unlist(res) ))
+}
+
+# cpp equivalent function to trackdepR
+cpptrackdepCode <- '
+std::list<int> trackdepCPPInternal(const int jid, IntegerMatrix im, const int maxR) {
+  std::list<int> v;
+  if(jid==0 || maxR==0)
+    return(v);
+  for(int i=0; i<im.nrow(); i++){
+    if(jid==im(i,0)){
+      //v.splice(v.end(),trackdepCPPInternal(im(i,1), im, maxR-1));
+      std::list<int> tmpV = trackdepCPPInternal(im(i,1), im, maxR-1);
+      v.splice(v.end(),tmpV);
+    }
+  }
+  v.push_front(jid);
+  return(v);
+}
+'
+trackdepWrapper <-cxxfunction(signature(jId="int", dF="matrix", MaxR="int" ),
+                          plugin = "Rcpp",
+                          incl=cpptrackdepCode,
+                          body='
+int JID = Rcpp::as<int>(jId);
+int MAXR = Rcpp::as<int>(MaxR);
+return Rcpp::wrap( trackdepCPPInternal(JID, dF, MAXR) );
+                          ')
+
+trackdepCPP <- function(jid, df, maxR){
+    return(trackdepWrapper(jid, as.matrix(df), maxR))
+}
+
+# here we can change to use R or CPP implementation
+trackdep <- trackdepCPP
+#trackdep <- trackdepR
+
+compute_indirect_dep <- function(iDF, depDF, maxRec) {
+  # tracking all indirect dependencies
+  result <- mclapply(unique(iDF[, Delayed]), function(j,d,m) trackdep(j, d, m), d=depDF[,.(JobId, Dependent)], m=maxRec, mc.cores=PAR_CORES)
+  
+  # Count the number of dependencies in each position of the list   
+  nRep <- as.vector(unlist( lapply(result, length) ))
+  
+  # Replicate elements to the number indirect dependencies for each one
+  aux <- as.vector(unlist( rep(as.vector(unique(iDF[, Delayed])),nRep) ))
+  
+  # Data frame with the Delayed Job and all previous dependencies
+  tmpdf2<-data.table(aux, as.numeric(as.list(unlist(result))))
+  names(tmpdf2)<-c("Delayed","IndirectDependent")
+  
+  setkey(tmpdf2)
+  tmpdf2 = unique(tmpdf2)
+  na.omit(tmpdf2)#[tmpdf2$Delayed != tmpdf2$IndirectDependent,]
+}
+#+end_src
+
+#+RESULTS: compute_indirect_dependencies
+
+*** Computing % of idle time per resource
+#+name:idlepercentage 
+#+begin_src R :results output :session R3   :noexport:
+idlepercentage <- function(dfAllIdle, dfAll){ 
+    dfAllIdleRatio <- merge( dfAllIdle %>% group_by(Sched, ResourceId) %>% summarize(IdleDuration=sum(Duration)), dfAll %>% group_by(Sched, ResourceId) %>% select(End) %>% summarize(End=max(End)), by=c("Sched", "ResourceId") )
+    dfAllIdleRatio$Ratio <- (dfAllIdleRatio$IdleDuration * 100) / dfAllIdleRatio$End
+    dfAllIdleRatio
+}
+#+end_src
+
+#+RESULTS: idlepercentage
+
+*** Computing time spent in each kernel type
+#+name:kerneltime
+#+begin_src R :results output :session R3  :noexport:
+kerneltime <- function(dfAll){
+    dfAllKernel = dfAll 
+    dfAllKernel$Duration = dfAllKernel$End - dfAllKernel$Start
+    dfAllKernel$Type="CPU"
+    dfAllKernel[ResourceId %in% c("CUDA0","CUDA1"),]$Type="CUDA"
+
+    return( dfAllKernel %>% group_by(Value, Type) %>% summarize(Num=length(Duration), Duration=sum(Duration), Max=max(End))  %>% mutate(Mean=Duration/Num) )
+}
+#+end_src
+
+#+RESULTS: kerneltime
+
+*** Dependencies by JobId only
+Perform the computation of indirect dependencies only for a given jobid.  
+#+name: depbyjobid
+#+begin_src R :results output :session R3  :var fdep=compute_indirect_dependencies  :noexport:
+dependenciesByJobId <- function(delayedId, df, maxRec){
+    # all dep of delayedId
+    result <- trackdep(delayedId, df[,.(JobId, Dependent)], maxRec)
+
+    # Count the number of dependencies in each position of the list   
+    nRep <- length(result)
+
+    # Replicate delayedId with the number of its indirect dependencies 
+    aux <- rep(delayedId, nRep)
+
+    # Data frame with the Delayed Job and all previous dependencies
+    tmpdf2<-data.table(aux, as.numeric(as.list(unlist(result))))
+    names(tmpdf2)<-c("Id","IndirectDependent")
+
+    setkey(tmpdf2)
+    tmpdf2 = unique(tmpdf2)
+    tmpdf2 = na.omit(tmpdf2)
+
+    tmpdf2
+}
+#+end_src
+
+#+RESULTS: depbyjobid
+
+#+RESULTS: indirectdepjobid
+
+*** Critical Path
+#+name: criticalPath
+#+begin_src R :results output :session R3  :var fdep=load_libraries :noexport:
+criticalPathTrack <- function(id, df){
+   res <- df %>% filter(IndirectDependent == id) %>% filter(DepEnd == max(DepEnd, na.rm=TRUE))
+   if(nrow(res)){
+       return( rbind(res, criticalPathTrack(res$Dependent, df) )  )
+   } else {
+       return( data.table() )
+   }
+}
+
+#+end_src
+
+#+RESULTS: criticalPath
+
+*** Estimating makespan using linear programming
+#+name: makespanestimation
+#+begin_src R :results output :session R3  :noexport:
+require(lpSolve)
+makespanestimation <- function(df, ncpu, ngpu){
+    # using min to avoid problems with kernels that do not have implementation for gpus or for cpu
+    cpu_gemm  <- min(df[Value == "dgemm"  & Type == "CPU", Mean], 10000000000)
+    cpu_trsm  <- min(df[Value == "dtrsm"  & Type == "CPU", Mean], 10000000000)
+    cpu_syrk  <- min(df[Value == "dsyrk"  & Type == "CPU", Mean], 10000000000)
+    cpu_potrf <- min(df[Value == "dpotrf" & Type == "CPU", Mean], 10000000000)
+
+    gpu_gemm  <- min(df[Value == "dgemm"  & Type == "CUDA", Mean], 10000000000)
+    gpu_trsm  <- min(df[Value == "dtrsm"  & Type == "CUDA", Mean], 10000000000)
+    gpu_syrk  <- min(df[Value == "dsyrk"  & Type == "CUDA", Mean], 10000000000)
+    gpu_potrf <- min(df[Value == "dpotrf" & Type == "CUDA", Mean], 10000000000)
+
+    # objective function 
+    #                  cpu-gemm, cpu-trsm, cpu-syrk, cpu-potrf, gpu-gemm, gpu-trsm, gpu-syrk, gpu-potrf,       T
+    f.obj <- c(               0,        0,        0,         0,        0,        0,        0,         0,       1)   # Minimize only T (makespan)
+
+    # matrix of constraint coefficients
+    f.con <- matrix( c(    
+        #              cpu-gemm, cpu-trsm, cpu-syrk, cpu-potrf, gpu-gemm, gpu-trsm, gpu-syrk, gpu-potrf,       T
+                              1,        0,        0,         0,        1,        0,        0,         0,       0,   # number of cpu_gemm  + number of gpu_gemm = num of gemm
+                              0,        1,        0,         0,        0,        1,        0,         0,       0,   # number of cpu_trsm  + number of gpu_trsm = num of trsm
+                              0,        0,        1,         0,        0,        0,        1,         0,       0,   # number of cpu_syrk  + number of gpu_syrk = num of syrk
+                              0,        0,        0,         1,        0,        0,        0,         1,       0,   # number of cpu_potrf + number of gpu_potrf = num of potrf
+                       cpu_gemm, cpu_trsm, cpu_syrk, cpu_potrf,        0,        0,        0,         0, -1*ncpu,   # time of cpu kernels multiplied by number of cpus
+                              0,        0,        0,         0, gpu_gemm, gpu_trsm, gpu_syrk, gpu_potrf, -1*ngpu,   # time of cuda kernels multiplied by number of gpus
+                              1,        0,        0,         0,        0,        0,        0,         0,       0,   # number of cpu_gemm  >= 0                  
+                              0,        1,        0,         0,        0,        0,        0,         0,       0,   # number of cpu_trsm  >= 0                  
+                              0,        0,        1,         0,        0,        0,        0,         0,       0,   # number of cpu_syrk  >= 0                  
+                              0,        0,        0,         1,        0,        0,        0,         0,       0,   # number of cpu_potrf >= 0                  
+                              0,        0,        0,         0,        1,        0,        0,         0,       0,   # number of gpu_gemm  >= 0                  
+                              0,        0,        0,         0,        0,        1,        0,         0,       0,   # number of gpu_trsm  >= 0 
+                              0,        0,        0,         0,        0,        0,        1,         0,       0,   # number of gpu_syrk  >= 0         
+                              0,        0,        0,         0,        0,        0,        0,         1,       0    # number of gpu_potrf >= 0 
+                                                                                                                ), nrow=14, byrow=TRUE
+)
+    # direction of constraints
+    f.dir <- c(                          "=",                           "=",                           "=",                            "=", "<=", "<=", ">=", ">=", ">=", ">=", ">=", ">=", ">=", ">=")
+    # right-hand sides of the matrix of constraints
+    f.rhs <- c(sum(df[Value == "dgemm",Num]), sum(df[Value == "dtrsm",Num]), sum(df[Value == "dsyrk",Num]), sum(df[Value == "dpotrf",Num]),    0,    0,    0,    0,    0,    0,    0,    0,    0,    0)
+
+    return( lp("min", f.obj, f.con, f.dir, f.rhs) )
+}
+#+end_src 
+
+#+RESULTS: makespanestimation
+*** Estimating critical path
+#+name: cpestimation
+#+begin_src R :results output :session R3  :noexport:
+cpestimation <- function(df, ncpu, ngpu){
+    auxdf <- df[Value %in% c("dpotrf", "dtrsm", "dsyrk")] %>% group_by(Value) %>% summarize( min=min(Mean), total = sum(Num))
+    return(auxdf[Value=="dpotrf"]$total * auxdf[Value=="dpotrf"]$min + (auxdf[Value=="dpotrf"]$total-1) * (auxdf[Value=="dtrsm"]$min + auxdf[Value=="dsyrk"]$min))
+}
+
+#+end_src
+
+#+RESULTS: cpestimation
+
+*** Computing direct and indirect dependencies by jobid
+#+name: computedependenciesjobid
+#+begin_src R :results output :session R3  :var fdep=depbyjobid :var fdep2=compute_dep_coord  :noexport:
+computeDependenciesbyJobId <- function(id, df, depdf, maxRecursion){
+# id: task id
+# df: basic df from csv dumped trace
+# depdf: basic df from tasks.rec 
+# maxRecursion: number of degrees of recursion used to compute indirect dependencies (1 means only direct dependencies)
+
+    # first compute only id of all dependencies
+    aux <- dependenciesByJobId(id, depdf, maxRecursion+1)
+
+    # compute dependencies for each task in the list of indirect dependencies
+    aux2 <- compute_dep_resourceid(tmpM <- merge(depdf[JobId %in% aux$IndirectDependent], df[,.(JobId, ResourceId, Start, End)], by="JobId"), df[JobId %in% tmpM$JobId | JobId %in% tmpM$Dependent])
+
+    merge(aux, aux2, by.x="IndirectDependent", by.y="JobId")[,.(Id, IndirectDependent, Dependent, ResourceId, Start, DepResourceId, DepStart, DepEnd)]
+}
+
+#+end_src
+
+#+RESULTS: computedependenciesjobid
+
+*** Identifying independent critical path of potrf tasks using union-find
+#+name: indeppotrfcp
+#+begin_src R :results output :session R3  :noexport:
+indepPotrfCP <- function(dt){
+    makeset <- function(lsmembers){
+        tmpset <- list(parent=vector(), rank=vector())
+        for(id in lsmembers){ 
+            tmpset$parent[[as.character(id)]] <- id
+            tmpset$rank[[as.character(id)]] <- 0 
+        }
+        return(tmpset)
+    }
+
+    unionset <- function(x, y){
+        linkset(findset(x), findset(y))
+    }
+
+    linkset <- function(x, y){
+        if (auxset$rank[[as.character(x)]] > auxset$rank[[as.character(y)]]){
+            auxset$parent[[as.character(y)]] <<- x
+        } else {
+            auxset$parent[[as.character(x)]] <<- y
+            if(auxset$rank[[as.character(x)]] == auxset$rank[[as.character(y)]]){
+                auxset$rank[[as.character(y)]] <<- auxset$rank[[as.character(y)]] + 1
+            }
+        }
+    }
+
+    findset <- function(x){
+        #print(sprintf("findset: %s", x))
+        #print(str(auxset))
+        if(x != auxset$parent[[as.character(x)]]){
+            auxset$parent[[as.character(x)]] <<- findset(auxset$parent[[as.character(x)]])
+        }
+        return (auxset$parent[[as.character(x)]])
+    }
+
+    samecomponent <- function(x, y){
+        if(findset(x) == findset(y))
+            return(TRUE)
+        else
+            return(FALSE)
+    }
+
+    auxset <- makeset(unique(c(dt$IndirectDependent, dt$Dependent)))
+
+    mapply(function(xx, yy){
+        unionset(xx, yy)
+    },dt$IndirectDependent, dt$Dependent)
+
+    res <- data.table(id=unique(dt$Id), path=unlist(lapply(unique(dt$Id), findset)))
+    res$pathid <- id(res[,.(path)])
+    res
+}
+
+#+end_src
+
+#+RESULTS: indeppotrfcp
+
+*** working with repetitions
+# multiple csv/rec files
+**** Reading traces(csv) from multiple executions
+#+name: readmultiplecsv
+#+begin_src R :results output :session R3  :var fdep=load_libraries :var fdep2=globalvar  :noexport:
+readMultipleCsv <- function(dir, pat, states=c("dpotrf", "dtrsm", "dsyrk", "dgemm", "Idle", "Sleeping"), statesMinTime=c("dpotrf", "dtrsm", "dsyrk", "dgemm")){
+    rbindlist(
+mclapply(list.files(path=dir, pattern=pat, full.names=TRUE), function(file){
+                           dt=data.table(read.csv(file, strip.white=TRUE, colClasses=c("Tag"="factor")))
+                           dt=dt[dt$Value %in% states,]
+                           #dt=dt[!(dt$Value %in% c(" Initializing", " Deinitializing", " Overhead", " Nothing", " Sleeping", " malloc_pinned"," free_pinned", " execute_on_all_wrapper", " Building task", " Submittings task", " Allocating", " AllocatingReuse", " Callback", " Su", " Executing", " PushingOutput", " Reclaiming", " Scheduling",  " WritingBack", " WritingBackAsync", " Freeing")),]
+                           dt$Sched=strsplit(basename(file), "-")[[1]][2]
+                           dt$r=sub(".csv", "",strsplit(basename(file), "-")[[1]][3])
+                           m <- min(dt[dt$Value %in% statesMinTime,]$Start)
+                           dt$MinStart <- m
+                           dt$Start <- dt$Start - m
+                           dt$End <- dt$Start+dt$Duration
+                           dt$ResourceId = factor(dt$ResourceId, levels=mixedsort(levels(dt$ResourceId)))
+                           dt$Sched = factor(dt$Sched)
+                           dt$r = factor(dt$r)
+                           dt=dt[, Nature:=NULL]
+                           dt=dt[, Type:=NULL]
+                           dt=dt[, Depth:=NULL]
+                           dt=dt[, Footprint:=NULL]
+
+                           return(droplevels(dt[Start >= 0 & ((ResourceId %like% "CPU") | (ResourceId %like% "CUDA")),]))
+                       }
+                     , mc.cores=PAR_CORES)
+              )
+}
+#+end_src
+
+#+RESULTS: readmultiplecsv
+    
+**** Reading tasks.rec from multiple executions
+#+name: readmultipletasksrec
+#+begin_src R :results output :session R3  :var fdep=load_libraries :var fdep2=globalvar :noexport:
+readMultipleTasksRec <- function(dir, pat){
+    rbindlist( mclapply(list.files(path=dir, pattern=pat, full.names=TRUE), function(file){
+                            dt=data.table(read.csv(file,  head=FALSE, sep=",", col.names = c("JobId", "DependsOn"), na.strings=""))
+                            dt$DependsOn = as.character(dt$DependsOn)
+                            dt[is.na(dt)] <- "0"
+  
+                            tmpList <- strsplit(as.character(dt$DependsOn), "[ ]+")
+                            n <- lapply(tmpList, length)
+                            tmpdf <- data.table(rep(as.vector(dt$JobId), as.vector(unlist(n))), as.numeric(unlist(tmpList)))
+                            names(tmpdf) <- c("JobId", "Dependent")
+                            tmpdf$Sched=strsplit(basename(file), "-")[[1]][2]
+                            tmpdf$r=sub(".rec.csv", "",strsplit(basename(file), "-")[[1]][3])
+                            return(droplevels(tmpdf))
+                        }, mc.cores=PAR_CORES)
+        )
+
+}
+#+end_src
+
+#+RESULTS: readmultipletasksrec
+
+**** Reading sub/ready from multiple executions
+#+name: readmultiplesubready
+#+begin_src R :results output :session R3  :var fdep=load_libraries :var fdep2=globalvar :noexport:
+readMultipleSubReady <- function(dir, pat){
+    rbindlist( mclapply(list.files(path=dir, pattern=pat, full.names=TRUE), function(file){
+                            dt=data.table(read.table(file,  head=FALSE, col.names = c("V0", "Time", "V2", "Status", "N"), na.strings=""))
+                            dt$Sched=strsplit(basename(file), "-")[[1]][2]
+                            dt$r=sub(".sub-ready.txt", "",strsplit(basename(file), "-")[[1]][3])
+                            dt$Sched = factor(dt$Sched)
+                            dt$r = factor(dt$r)
+                            return(dt[,.(Time, Status, N, Sched, r)])
+                        }, mc.cores=PAR_CORES)
+        )
+
+}
+#+end_src
+
+#+RESULTS: readmultiplesubready
+
+** Graphics Functions
+*** Gantt with Outliers
+#+name: ganttoutliers
+#+begin_src R :results output  :session R3 :var fdep=compute_phases :var fdep2=compute_ijk :noexport:
+gantt_outliers <- function(df, plotly=FALSE){
+    # simple function to detect outliers
+    findBorder <- function(x) {
+        quantile(x)["75%"] + (quantile(x)["75%"] - quantile(x)["25%"]) * 1.5
+    }
+
+    df <- df %>% mutate(Type=ifelse(grepl("CUDA", ResourceId), "CUDA", "CPU")) %>% group_by(Type, Value, Sched, r) %>% mutate(Border= findBorder(Duration)   )  
+    df$outlier <- ifelse(df$Duration>df$Border & !(df$Value %in% c("Idle", "Sleeping")), TRUE, FALSE)
+
+    #merging idle and sleeping states    
+    df[df$Value %in% c("Idle", "Sleeping")]$Value <- "Idle/Sleeping"    
+
+    # tasks
+    if(plotly){ # there is a bug in plotly when using alpha as a variable (github.com/ropensci/plotly/issues/641), so this is an alternative version to use while the bug is not fixed
+        basic <-  ggplot(df[Start >= 0,], aes(x=Start, y=factor(ResourceId))) + # only to show Resources names in y axis
+            geom_rect(data=df[Start >= 0 & !outlier], 
+                      aes(xmin=Start, 
+                          xmax=End,ymin=as.numeric(ResourceId)-.4, 
+                          ymax=as.numeric(ResourceId)+.4, 
+                          fill=Value, 
+                          alpha=.9)
+                      ) + 
+            geom_rect(data=df[Start >= 0 & outlier], 
+                      aes(xmin=Start, 
+                          xmax=End,ymin=as.numeric(ResourceId)-.4, 
+                          ymax=as.numeric(ResourceId)+.4, 
+                          fill=Value, 
+                          alpha=1)
+                      ) 
+    } else {
+        basic <-  ggplot(df[Start >= 0,], aes(x=Start, y=factor(ResourceId))) + # only to show Resources names in y axis
+            geom_rect(data=df[Start >= 0], 
+                      aes(xmin=Start, 
+                          xmax=End,ymin=as.numeric(factor(ResourceId))-.4, 
+                          ymax=as.numeric(factor(ResourceId))+.4, 
+                          fill=Value, 
+                          alpha=ifelse(outlier, 1, .9))
+                      )  
+
+    }
+    basic <- basic + scale_fill_manual(values=c("#4daf4a", "#e41a1c", "#984ea3", "#377eb8", "#FFFF81", "#FFFF81"), name="") +
+        scale_y_discrete("Resources", expand=c(.02,.02)) +
+        scale_alpha(range=c(0.5,1)) +
+        scale_x_continuous("")  + 
+        # cosmetics
+        theme_bw() + 
+        theme(legend.position="bottom") + 
+        guides(linetype=FALSE, alpha=FALSE, fill=guide_legend(nrow=1,byrow=TRUE, order=1), color=guide_legend(nrow=1,byrow=TRUE, order=2))
+    return(basic)
+}
+#+end_src
+
+#+RESULTS: ganttoutliers
+
+*** Gantt with Estimation+Outliers
+#+name: ganttestimationoutliers
+#+begin_src R :results output :session R3  :var fdep=makespanestimation :var fdep2=idlepercentage :var fdep3=cpestimation :var fdep4=compute_phases :var fdep5=compute_ijk :var fdep6=ganttoutliers :noexport:
+gantt_estimationoutliers <- function(df, plotly=FALSE, idlePercentage=TRUE){
+
+    tmpcpEnd <- df %>% group_by(Sched, r) %>% summarize(y=nlevels(ResourceId)/2, End=max(End))
+
+    ncpu  <- nlevels(droplevels(df[grepl("CPU", ResourceId)]$ResourceId))
+    ncuda <- nlevels(droplevels(df[grepl("CUDA", ResourceId)]$ResourceId))
+
+    tmpEstimation <- rbindlist(
+         lapply(levels(df$Sched),
+                function(sch, alldf) {
+                    alldf <- droplevels(alldf[Sched==sch,])
+                    rbindlist(lapply(levels(alldf$r), 
+                                     function(rr, sc, alld) {
+                                         if("speed" %in% names(alld[r==rr])){
+                                             data.table(Sched=sc, r=rr, speed=unique(alld[r==rr]$speed), nlevRes=nlevels(alld[r==rr]$ResourceId), Time=makespanestimation(alld[Sched == sc & r == rr, .(ResourceId, Duration, Value, JobId)] %>% mutate(Type=ifelse(grepl("CUDA", ResourceId), "CUDA", "CPU")) %>% group_by(Type, Value) %>% summarize(Mean=mean(Duration), Num=(length(Duration))), ncpu,ncuda )$objval)
+                                         } else {
+                                             data.table(Sched=sc, r=rr, nlevRes=nlevels(alld[r==rr]$ResourceId), Time=makespanestimation(alld[Sched == sc & r == rr, .(ResourceId, Duration, Value, JobId)] %>% mutate(Type=ifelse(grepl("CUDA", ResourceId), "CUDA", "CPU")) %>% group_by(Type, Value) %>% summarize(Mean=mean(Duration), Num=(length(Duration))), ncpu,ncuda )$objval)
+                                         }
+                                     }
+                                   , sc=sch, alld=alldf[Sched==sch] ))
+                }
+              , alldf=df)
+    )
+
+    tmpCPEstimation <- rbindlist(
+        lapply(levels(df$Sched),
+               function(sch, alldf) {
+                   alldf <- droplevels(alldf[Sched==sch,])
+                   rbindlist(lapply(levels(alldf$r), 
+                                    function(rr, sc, alld) {
+                                        if("speed" %in% names(alld[r==rr])){
+                                            data.table(Sched=sc, r=rr, speed=unique(alld[r==rr]$speed), nlevRes=nlevels(alld[r==rr]$ResourceId), Time=cpestimation(alld[Sched == sc & r == rr, .(ResourceId, Duration, Value, JobId)] %>% mutate(Type=ifelse(grepl("CUDA", ResourceId), "CUDA", "CPU")) %>% group_by(Type, Value) %>% summarize(Mean=mean(Duration), Num=(length(Duration))), ncpu,ncuda ))
+                                        } else {
+                                            data.table(Sched=sc, r=rr, nlevRes=nlevels(alld[r==rr]$ResourceId), Time=cpestimation(alld[Sched == sc & r == rr, .(ResourceId, Duration, Value, JobId)] %>% mutate(Type=ifelse(grepl("CUDA", ResourceId), "CUDA", "CPU")) %>% group_by(Type, Value) %>% summarize(Mean=mean(Duration), Num=(length(Duration))), ncpu,ncuda ))
+                                        }
+                                    }
+                                  , sc=sch, alld=alldf[Sched==sch] ))
+               }
+             , alldf=df)
+    )
+
+
+
+
+    res <- gantt_outliers(df, plotly) +
+        # makespan
+        geom_text(data=tmpcpEnd, aes(x=End, y=y, label=round(End,0)), angle=90) +  
+
+        # critical path estimation
+        geom_vline(data=tmpCPEstimation, aes(xintercept=Time), size=5, alpha=.7, color="gray") +
+
+        # critical path estimation - text
+        geom_text(data=tmpCPEstimation, aes(x=Time, y= nlevRes/1.4), label="CPE", angle=90, color="black") + # critical path estimation
+        geom_text(data=tmpCPEstimation, aes(x=Time, y= nlevRes/2, label=round(Time,0)), angle=90, color="black") +
+
+        # estimated makespan
+        geom_vline(data=tmpEstimation, aes(xintercept=Time), size=5, alpha=.7, color="gray") +
+
+        # estimated makespan - text
+        geom_text(data=tmpEstimation, aes(x=Time, y= nlevRes/1.4), label="ABE", angle=90, color="black") + # makespan estimation
+        geom_text(data=tmpEstimation, aes(x=Time, y= nlevRes/2, label=round(Time, 0)), angle=90, color="black")  
+
+    if(idlePercentage){
+        # percentage of idle
+        res <- res + geom_text(data=rbindlist(
+                                   lapply(levels(df$Sched),
+                                          function(sch, alldf) {
+                                              rbindlist(lapply(levels(alldf$r), 
+                                                               function(rr, sc, alld) {
+                                                                   aux <- idlepercentage(alld[(Value %in% c("Idle", "Sleeping")) & Start > 0 & r==rr,], alld[ r==rr,] )
+                                                                   aux$r <- rr
+                                                                   if("speed" %in% names(alld[r==rr])){
+                                                                       aux$speed <- unique(alld[r==rr]$speed)
+                                                                   }
+                                                                   aux
+                                                               }
+                                                             , sc=sch, alld=alldf[Sched==sch]))
+                                          }
+                                        , alldf=df)
+                               ), aes(x=1.05*max(End), y=ResourceId, label=percent(Ratio/100)),
+                               show.legend=FALSE, size=3.8) 
+    }
+   
+    return(res)
+}
+#+end_src
+
+#+RESULTS: ganttestimationoutliers
+
+*** Gantt with potrf Dependencies+Outliers
+#+name: ganttpotrfdepoutliers
+#+begin_src R :results output :session R3  :var fdep=makespanestimation :var fdep2=idlepercentage :var fdep3=cpestimation :var fdep4=compute_phases :var fdep5=compute_ijk :var fdep6=criticalPath :var fdep7=indeppotrfcp  :var fdep8=computedependenciesjobid :var fdep9=ganttoutliers :var fdep10=ganttestimationoutliers  :noexport:
+gantt_potrfdepoutliers <- function(df, dfdep, maxR, plotly=FALSE, idlePercentage=TRUE){
+
+    tmpcpEnd <- df %>% group_by(Sched, r) %>% summarize(y=nlevels(ResourceId)/2, End=max(End))
+
+    tmpcpPotrf <- rbindlist(lapply(levels(df$Sched),
+                                   function(sch, alldf, alldfdep) {
+                                       rbindlist(lapply(levels(alldf$r), 
+                                                        function(rr, sc, alld, allddep) {
+                                                            aux <- rbindlist(lapply(df[Value=="dpotrf" & Sched==sc & r==rr ]$JobId,
+                                                                                    function(id, df, depdf, maxRecursion){
+                                                                                        criticalPathTrack(id, computeDependenciesbyJobId(id, df, depdf, maxRecursion))
+                                                                                    }, df=alld[r==rr,], depdf=allddep[r==rr,], maxRecursion=maxR ))
+                                                            if(!empty(aux)){
+                                                                aux$Sched <- sc
+                                                                aux$r <- rr
+                                                                aux$delay <- aux$Start - aux$DepEnd
+                                                                if("speed" %in% names(alld[r==rr])){
+                                                                    aux$speed <- unique(alld[r==rr]$speed)
+                                                                }
+                                                                merge(aux, indepPotrfCP(aux), by.x="Id", by.y="id")
+                                                            } else {     
+                                                                aux
+                                                            }
+                                                        }
+                                                      , sc=sch, alld=alldf[Sched==sch,], allddep=alldfdep[Sched==sch,]))
+                                   }
+                                 , alldf=df, alldfdep=dfdep)) 
+
+    res <- gantt_estimationoutliers(df, plotly, idlePercentage) +
+        # dependencies
+        geom_segment(data=tmpcpPotrf, aes(x=Start, y=ResourceId, xend=DepEnd, yend=DepResourceId, color=factor(pathid)), alpha=1, show.legend=FALSE ) 
+
+    if(plotly){ # alpha parameter has a different behavior in plotly, so to get the same result we should draw the border without use alpha (report this as a plotly bug)
+        res <- res + 
+            geom_segment(data=tmpcpPotrf, aes(x=DepStart, y=as.numeric(DepResourceId)-.4, xend=DepEnd, yend=as.numeric(DepResourceId)-.4, color=factor(pathid) ) ) +
+            geom_segment(data=tmpcpPotrf, aes(x=DepStart, y=as.numeric(DepResourceId)+.4, xend=DepEnd, yend=as.numeric(DepResourceId)+.4, color=factor(pathid) ) ) +
+            geom_segment(data=tmpcpPotrf, aes(x=DepStart, y=as.numeric(DepResourceId)+.4, xend=DepStart, yend=as.numeric(DepResourceId)-.4, color=factor(pathid) ) ) +
+            geom_segment(data=tmpcpPotrf, aes(x=DepEnd, y=as.numeric(DepResourceId)+.4, xend=DepEnd, yend=as.numeric(DepResourceId)-.4, color=factor(pathid) ) ) 
+    } else {
+        res <- res + 
+            geom_rect(data=tmpcpPotrf, aes(xmin=DepStart, ymin=as.numeric(DepResourceId)-.4, xmax=DepEnd, ymax=as.numeric(DepResourceId)+.4, color=factor(pathid) ), alpha=0) 
+    }
+    return(res)
+}
+#+end_src
+
+#+RESULTS: ganttpotrfdepoutliers
+
+*** Extended Gantt (full)
+#+name: extendedgantt
+#+begin_src R :results output  :session R3 :var fdep=compute_phases :var fdep2=compute_ijk :var fdep3=ganttoutliers :var fdep4=subvsready :var fdep5=phasesonly :var fdep6=barganttestimation :var fdep7=ganttestimationoutliers :noexport:
+extended_gantt <- function(df, dfSR, xmaxrange=NA){
+    #########################
+    # submitted / ready tasks
+
+    subready <- sub_vs_ready(df, dfSR) + coord_cartesian(xlim=c(0,max(df$End))) + scale_x_continuous("Time [ms]")  
+
+    #########################
+    # basic gantt  
+    basic <- gantt_estimationoutliers(df) + theme(legend.margin = unit(-0.3, "cm"), legend.background = element_blank())
+
+    #########################
+    # phases
+    phases <- phasesonly(df) + theme(axis.title.x=element_blank(), axis.text.x=element_blank()) 
+
+    #########################
+    # makespan estimation bars
+    barest <- bar_gantt_estimation(df) + facet_wrap(~Value, ncol=1, scales="free_y") + theme(legend.position="none", axis.title.x=element_blank(), axis.title.y=element_blank(), axis.text.x = element_text(angle = 90)) + ggtitle("# of tasks ")
+
+    # aligning inner range
+    if(!is.na(xmaxrange)){
+        max_x_range <- xmaxrange
+    } else {
+        max_x_range <- max(layer_scales(basic)$x$range$range[2],
+                           layer_scales(subready)$x$range$range[2],
+                           layer_scales(phases)$x$range$range[2])
+    }
+
+    # plotting multiple graphics
+    gBasic <- gtable_add_cols(ggplotGrob(basic + coord_cartesian(xlim=c(0,max_x_range))), unit(1, "lines"))
+    gSubready <- ggplotGrob(subready + coord_cartesian(xlim=c(0,max_x_range)) + facet_grid(Status~., scales="free_y") + theme(strip.background = element_blank(), strip.text.y = element_blank()))
+    gPhases <-  gtable_add_cols(ggplotGrob(phases + coord_cartesian(xlim=c(0,max_x_range))), unit(1, "lines"))
+    gBarest <- ggplotGrob(barest)
+    
+    # aligning first three plots (this will align only the plotting area)
+    g <- rbind(gBasic, gPhases, gSubready, size="first")
+    g$widths <- unit.pmax(gBasic$widths, gPhases$widths, gSubready$widths)
+
+    # setting different heights for each plot (first 3)
+    id <- g$layout$t[g$layout$name == "panel"]
+    g$heights[id] <- unit(c(4,1,0.5,0.5), "null")
+    
+
+    #grid.newpage()
+    # ploting aligned plots (first three) and the last one
+    grid.arrange(g, gBarest, widths = c(20, 1.5), ncol=2, newpage=FALSE)
+
+}
+#+end_src
+
+#+RESULTS: extendedgantt
+
+*** Extended Gantt with Phases and Makespan estimation
+#+name: extendedganttphasesest
+#+begin_src R :results output  :session R3 :var fdep=compute_phases :var fdep2=compute_ijk :var fdep3=ganttoutliers :var fdep4=subvsready :var fdep5=phasesonly :var fdep6=barganttestimation :var fdep7=ganttestimationoutliers :noexport:
+extended_gantt_phases_est <- function(df, xmaxrange=NA){
+
+    #########################
+    # basic gantt  
+    basic <- gantt_estimationoutliers(df) + theme(legend.margin = unit(-0.25, "cm")) 
+
+    #########################
+    # phases
+    phases <- phasesonly(df) #+ theme(axis.title.x=element_blank(), axis.text.x=element_blank())
+
+    #########################
+    # makespan estimation bars
+    barest <- bar_gantt_estimation(df) + facet_wrap(~Value, nrow=1, scales="free_y") + theme(legend.position="none", axis.title.x=element_blank()) + scale_y_continuous("# tasks") 
+
+    # working with multiple schedulers 
+    if( (nlevels(droplevels(df)$Sched) > 1) & (nlevels(droplevels(df)$r) > 1) ){
+        basic <- basic + facet_grid(Sched ~ r, labeller= labeller(Sched=toupper)) + theme(strip.background = element_blank(), strip.text.x = element_blank())#element_text(size = 24))
+        phases <- phases + facet_grid(Sched ~ r, labeller= labeller(Sched=toupper)) + theme(strip.background = element_blank(), strip.text.x = element_blank())
+        barest <- barest + facet_wrap((Sched+Value) ~ r, scales="free_y", nrow=1, labeller= labeller(Sched=toupper)) + theme(strip.background = element_blank(), strip.text.x = element_blank())
+    } else if (nlevels(droplevels(df)$Sched) > 1){
+        basic <- basic + facet_grid(~Sched, labeller= labeller(Sched=toupper)) + theme(strip.background = element_blank(), strip.text.x = element_blank())#element_text(size = 24))
+        phases <- phases + facet_grid(~Sched, labeller= labeller(Sched=toupper)) + theme(strip.background = element_blank(), strip.text.x = element_blank())
+        barest <- barest + facet_wrap(~ Sched+Value, scales="free_y", nrow=1, labeller= labeller(Sched=toupper)) + theme(strip.background = element_blank(), strip.text.x = element_blank())
+    } else if (nlevels(droplevels(df)$r) > 1){
+        basic <- basic + facet_grid(~r) + theme(strip.background = element_blank(), strip.text.x = element_blank())#element_text(size = 24))
+        phases <- phases + facet_grid(~r) + theme(strip.background = element_blank(), strip.text.x = element_blank())
+        barest <- barest + facet_wrap(~ r+Value, scales="free_y", nrow=1) + theme(strip.background = element_blank(), strip.text.x = element_blank())
+    }
+
+
+    # aligning inner range
+    if(!is.na(xmaxrange)){
+        max_x_range <- xmaxrange
+    } else {
+        max_x_range <- max(layer_scales(basic)$x$range$range[2],
+                           layer_scales(phases)$x$range$range[2])
+    }
+
+    # plotting multiple graphics
+    gBasic <- ggplotGrob(basic + coord_cartesian(xlim=c(0,max_x_range)))
+    gPhases <- ggplotGrob(phases + coord_cartesian(xlim=c(0,max_x_range)))
+    gBarest <- ggplotGrob(barest)
+    
+    # aligning first three plots (this will align only the plotting area)
+    g <- rbind(gBasic, gPhases, size="first")
+    #g$widths <- unit.pmax(gBasic$widths, gPhases$widths)
+
+    # setting different heights for each plot (first 2)
+    id <- g$layout$t[g$layout$name == "panel"]
+    g$heights[id] <- unit(c(4,1), "null")
+
+    #grid.newpage()
+    # ploting aligned plots (first three) and the last one
+    arrangeGrob(g, gBarest, heights = c(5, 1), ncol=1)
+
+}
+#+end_src
+
+#+RESULTS: extendedganttphasesest
+
+*** Bar chart number of Tasks by Resource Type - Estimation vs Real
+#+name: barganttestimation
+#+begin_src R :results output :session R3  :var fdep=makespanestimation :noexport:
+bar_gantt_estimation <- function(dt){
+    ncpu  <- nlevels(droplevels(df[grepl("CPU", ResourceId)]$ResourceId))
+    ncuda <- nlevels(droplevels(df[grepl("CUDA", ResourceId)]$ResourceId))
+
+    tmpEstimation <- rbindlist(
+        lapply(levels(dt$Sched),
+               function(sch, alldf) {
+                   alldf <- droplevels(alldf[Sched==sch,])
+                   rbindlist(lapply(levels(alldf$r), 
+                                    function(rr, sc, alld) {
+                                        if("speed" %in% names(alld[r==rr])){
+                                            data.table(Sched=sc, 
+                                                       r=rr, 
+                                                       speed=unique(alld[r==rr]$speed), 
+                                                       Value=c("dgemm", "dtrsm", "dsyrk", "dpotrf", "dgemm", "dtrsm", "dsyrk", "dpotrf"), 
+                                                       Type=c("CPU", "CPU", "CPU", "CPU", "CUDA", "CUDA", "CUDA", "CUDA"),
+                                                       Num=makespanestimation(alld[Sched == sc & r == rr, .(ResourceId, Duration, Value, JobId)] %>% mutate(Type=ifelse(grepl("CUDA", ResourceId), "CUDA", "CPU")) %>% group_by(Type, Value) %>% summarize(Mean=mean(Duration), Num=(length(Duration))), ncpu,ncuda )$solution[1:8])
+                                        } else {
+                                            data.table(Sched=sc, 
+                                                       r=rr, 
+                                                       Value=c("dgemm", "dtrsm", "dsyrk", "dpotrf", "dgemm", "dtrsm", "dsyrk", "dpotrf"), 
+                                                       Type=c("CPU", "CPU", "CPU", "CPU", "CUDA", "CUDA", "CUDA", "CUDA"),
+                                                       Num=makespanestimation(alld[Sched == sc & r == rr, .(ResourceId, Duration, Value, JobId)] %>% mutate(Type=ifelse(grepl("CUDA", ResourceId), "CUDA", "CPU")) %>% group_by(Type, Value) %>% summarize(Mean=mean(Duration), Num=(length(Duration))), ncpu,ncuda )$solution[1:8])
+                                        }
+                                    }
+                                  , sc=sch, alld=alldf[Sched==sch] ))
+               }
+             , alldf=dt)
+    )
+
+
+    ggplot() +
+        geom_bar(data=dt[!(Value %in% c("Idle", "Sleeping"))] %>% mutate(Type=ifelse(grepl("CUDA", ResourceId), "CUDA", "CPU")) %>% group_by(Type, Value, Sched, r) %>% summarize(Num=(length(Duration)))
+                ,aes(x=Type,y=Num,fill=Value), position="stack",stat = "identity",alpha=.6) +
+        geom_point(data=tmpEstimation, aes(x=Type,y=Num, fill=Value), shape=21, color="black", alpha=0.7, size=2, stroke=1) +
+        scale_fill_manual(values=c("#4daf4a", "#e41a1c", "#984ea3", "#377eb8"), name="Value") +
+        facet_grid(Sched ~ Value, scales="free_y") +   
+        # graphics
+        theme_bw() 
+}
+#+end_src
+
+#+RESULTS: barganttestimation
+
+*** Number of submitted tasks vs number of ready tasks
+#+name: subvsready
+#+begin_src R :results output  :session R3 :noexport:
+sub_vs_ready <- function(df, dfSR){
+    adjustedtime <- function(time, schd, rr){
+        return(time - unique(df[Sched==unique(as.character(schd)) & r==unique(as.character(rr))]$MinStart))
+    }
+    dfSR[Status == "nready"]$Status <- "ready"
+    dfSR[Status == "nsubmitted"]$Status <- "submitted"
+    dtadj <- ddply(dfSR, c("Sched", "r"), mutate, AdjustedTime= adjustedtime(Time, Sched, r))
+    statusTxt <- ddply(dtadj, c("Status"), summarize, x=max(AdjustedTime)/2, y=max(N)*0.8)
+    subready <- ggplot(data=dtadj, 
+                       aes(x=AdjustedTime, y=N)) +
+        geom_line() +
+        geom_text(data=statusTxt, aes(x=x, y=y, label=Status)) +
+        #geom_dl(aes(label=Status), method=list("far.from.others.borders", color="red",vjust = -1)) + 
+        theme_bw() + 
+        theme(legend.position="none")  + scale_y_continuous("# tasks")#scale_y_log10("# tasks") #+ coord_cartesian(xlim=c(0,800))
+    return(subready)
+}
+#+end_src
+
+#+RESULTS: subvsready
+
+
+*** Phases only
+#+name: phasesonly
+#+begin_src R :results output  :session R3 :var fdep=compute_phases :var fdep2=compute_ijk  :noexport:
+phasesonly <- function(df){
+    tmpPhases <- rbindlist(lapply(levels(droplevels(df$Sched)),
+                                  function(sch) {
+                                      rbindlist(lapply(levels(droplevels(df[Sched==sch]$r)), 
+                                                       function(rr, sc) {
+                                                           aux <- compute_phases( compute_ijk(df[!(Value %in% c("Idle", "Sleeping")) & Sched==sc & r==rr,]) )
+                                                           if(!empty(aux)){
+                                                               aux$Sched <- sc
+                                                               aux$r <- rr
+                                                               if("speed" %in% names(df[Sched==sc & r==rr])){
+                                                                   aux$speed <- unique(df[Sched==sc & r==rr]$speed)
+                                                               }
+                                                           }
+                                                           aux
+                                                       }
+                                                     , sc=sch))
+                                  }
+                                ))
+
+    aux <-  ggplot(data=tmpPhases, 
+                    aes(x=start, xend=end, y=phase, yend=phase)) +
+         geom_segment(size=1, alpha=.2, arrow = arrow(length = unit(0.2,"cm"))) +
+         geom_segment(size=1, aes(x=end, xend=start, y=phase, yend=phase), alpha=.2, arrow=arrow(length=unit(0.2, "cm"))) +
+         scale_y_reverse("k iteration") +         
+         theme_bw() + scale_x_continuous("Time [ms]")
+     return(aux)
+}
+
+#+end_src
+
+#+RESULTS:
+
+*** Make DAG
+#+name: makedag
+#+begin_src R :results output  :session R3 :var fdep=compute_ijk  :noexport:
+makedag <- function(dAll, dDep, dagFile){
+    dAll <- dAll[!(Value %in% c("Idle", "Sleeping")),.(JobId, Value, Tag)]
+    setkey(dAll)
+    dAll <- unique(dAll)
+    dDep <- dDep[(JobId %in% dAll$JobId) & (Dependent %in% dAll$JobId)]
+
+    # tag i, j, k
+    dAll <- compute_ijk(dAll) 
+
+    # k in dep
+    dDep <- merge(dDep, dAll[,.(JobId, k)], by="JobId")
+
+    # colors
+    dAll$Color <- "gray"
+    dAll[Value %in% "dpotrf"]$Color <- "#e41a1c"
+    dAll[Value %in% "dtrsm"]$Color <- "#377eb8"
+    dAll[Value %in% "dsyrk"]$Color <- "#984ea3"
+    dAll[Value %in% "dgemm"]$Color <- "#4daf4a"    
+
+    # dot file structure
+    cat("digraph G {
+		color=white
+        \n", file=dagFile)
+    
+    # hierarchical structure (by k)
+    lapply(unique(dAll$k), function(kk){
+        cat("subgraph cluster_", kk," {
+                 rankdir=LR;
+            \n", sep="", file=dagFile, append=TRUE)
+        # edges
+        mapply(function(id, depen){
+            cat("\"", depen, "\"->\"", id, "\"", "\n", sep="", file=dagFile, append=TRUE)
+        }, dDep[k == kk]$JobId, dDep[k == kk]$Dependent)
+
+        cat("}
+            ", sep="", file=dagFile, append=TRUE)
+
+    })    
+
+    # colors/names
+    lapply(unique(dAll$JobId), 
+           function(id){
+               cat("\"", id, "\" [ style=filled, label=\"", as.character(dAll[JobId==id]$Value), " ", dAll[JobId==id]$k, "\" fillcolor=\"", dAll[JobId==id]$Color, "\"]\n", sep="", file=dagFile, append=TRUE)
+           })
+
+    # dot file structure
+    cat("
+        }", sep="", file=dagFile, append=TRUE)
+    
+}
+#+end_src
+
+** Large Matrices 60*690 
+*** Processing raw files
+**** Original Code
+
+The following code block generates 6.5 Gigabytes of data.
+
+#+name: rawDir60
+#+begin_src sh :results output  :var rawPath="./data/chameleon-idcin2-604020/60/" :cache yes :noexport:
+    tmpDir=$(mktemp -d)
+    echo -n "$tmpDir"
+    for file in `find $rawPath -name "SoloStarpuData-*-*org"`;  do 
+        filen=`basename $file`
+	Sched=`echo $filen | cut -d"-" -f2`;  
+	rep=`echo $filen | cut -d"-" -f3`; 
+	rep=`echo $rep | cut -d"." -f1`; 
+	./get_trace.sh -t $file $tmpDir/paje-$Sched-$rep; 
+	grep "nready\|nsubmitted" $tmpDir/paje-$Sched-$rep.trace > $tmpDir/paje-$Sched-$rep-sub-ready-tmp.txt
+	tail -n +3 $tmpDir/paje-$Sched-$rep-sub-ready-tmp.txt > $tmpDir/paje-$Sched-$rep-sub-ready.txt
+	./get_tasksrec.sh $file $tmpDir/tasks-$Sched-$rep; 
+	cat $tmpDir/tasks-$Sched-$rep.rec | sed -n '/^DependsOn\|^JobId/p' | sed  's/JobId: //g' | sed  ':a;N;$!ba;s/\nDependsOn: /,/g' >  $tmpDir/tasks-$Sched-$rep.rec.csv ;
+    done
+#+end_src
+
+
+
+**** TRSM/SYRK on GPU
+
+The following code block generates 3.1 Gigabytes of data.
+
+#+name: rawDir60tsgpu
+#+begin_src sh :results output  :var rawPath="./data/chameleon-idcin2-trsmsyrkGPU/60/" :cache yes  :noexport:
+    tmpDir=$(mktemp -d)
+    echo -n "$tmpDir"
+    for file in `find $rawPath -name "SoloStarpuData-*-*org"`;  do 
+        filen=`basename $file`
+	Sched=`echo $filen | cut -d"-" -f2`;  
+	rep=`echo $filen | cut -d"-" -f3`; 
+	rep=`echo $rep | cut -d"." -f1`; 
+	./get_trace.sh -t $file $tmpDir/paje-$Sched-$rep; 
+	grep "nready\|nsubmitted" $tmpDir/paje-$Sched-$rep.trace > $tmpDir/paje-$Sched-$rep-sub-ready-tmp.txt
+	tail -n +3 $tmpDir/paje-$Sched-$rep-sub-ready-tmp.txt > $tmpDir/paje-$Sched-$rep-sub-ready.txt
+	./get_tasksrec.sh $file $tmpDir/tasks-$Sched-$rep; 
+	cat $tmpDir/tasks-$Sched-$rep.rec | sed -n '/^DependsOn\|^JobId/p' | sed  's/JobId: //g' | sed  ':a;N;$!ba;s/\nDependsOn: /,/g' >  $tmpDir/tasks-$Sched-$rep.rec.csv ;
+    done
+#+end_src
+
+
+
+*** Loading files 
+**** Original Code
+
+Loading the following code will require approximately 12% of 16GB of memory.
+
+#+name: data60
+#+begin_src R :results output :session R3  :var rawDir60=rawDir60 :var fdep=readmultiplecsv :var fdep2=readmultipletasksrec :var fdep3=readmultiplesubready :cache yes :noexport:
+dtAll60 <- readMultipleCsv(rawDir60, "*[^rec].csv")
+dtSubReady60 <- readMultipleSubReady(rawDir60, "*sub-ready.txt")
+dtDep60 <- readMultipleTasksRec(rawDir60, "*.rec.csv")
+
+dtFetchingInput60 <- readMultipleCsv(rawDir60, "*[^rec].csv", states=c("dpotrf", "dtrsm", "dsyrk", "dgemm", "Idle", "Sleeping", "FetchingInput", "Callback"))
+#+end_src
+
+
+
+**** TRSM/SYRK on GPU
+
+Loading the following code will require approximately 2% of 16GB of memory.
+
+#+name: data60tsgpu
+#+begin_src R :results output :session R3  :var rawDir60tsgpu=rawDir60tsgpu :var fdep=readmultiplecsv :var fdep2=readmultipletasksrec :var fdep3=readmultiplesubready :cache yes :noexport:
+dtAll60tsgpu <- readMultipleCsv(rawDir60tsgpu, "*[^rec].csv")
+dtSubReady60tsgpu <- readMultipleSubReady(rawDir60tsgpu, "*sub-ready.txt")
+dtDep60tsgpu <- readMultipleTasksRec(rawDir60tsgpu, "*.rec.csv")
+#+end_src
+
+#+RESULTS[4ceb9bf62d3246d2c555739f924b4b3df35ca6bf]: data60tsgpu
+
+
+
+
+
+*** Paper Pictures
+**** 1 - Full size extended gantt
+#+name: large1
+#+begin_src R :results output graphics :file full-size-extended-gantt.pdf  :width 18.80 :height 7.20 :session R3 :var fdep=extendedgantt :noexport:
+extended_gantt(dtAll60[r=="1" & Sched=="dmdas" ], dtSubReady60[r=="1" & Sched=="dmdas"]) #+ 
+#+end_src
+
+#+RESULTS:
+[[file:full-size-extended-gantt.pdf]]
+
+**** 2 - Extended gantt (without sub/ready tasks) with 3 schedulers + Comparison Original vs Forcing TRSM/SYRK on GPUs
+#+name: large2
+#+begin_src R :results output graphics :file comparison-3-sched-original-vs-forcing.pdf  :width 24 :height 15 :session R3 :var fdep=extendedganttphasesest :noexport:
+MaxX  <- 1.05*max(max(dtAll60[r=="1" & Sched=="dmda" ]$End),
+                  max(dtAll60tsgpu[r=="1" & Sched=="dmda" ]$End), 
+                  max(dtAll60[r=="1" & Sched=="dmdas" ]$End), 
+                  max(dtAll60tsgpu[r=="1" & Sched=="dmdas" ]$End), 
+                  max(dtAll60[r=="1" & Sched=="ws" ]$End), 
+                  max(dtAll60tsgpu[r=="1" & Sched=="ws" ]$End))
+grid.arrange(
+#    arrangeGrob(
+        extended_gantt_phases_est(dtAll60[r=="1" & Sched %in% c("dmda", "dmdas", "ws") ], MaxX),
+#        left=textGrob("Unconstrained", gp = gpar(fontsize=26), rot=90)),
+#    arrangeGrob(
+        extended_gantt_phases_est(dtAll60tsgpu[r=="1" & Sched  %in% c("dmda", "dmdas", "ws") ], MaxX),
+#        left=textGrob("Constrained", gp = gpar(fontsize=26), rot=90)),     
+    heights = c(1,1), nrow=2)
+
+#+end_src 
+
+#+RESULTS:
+[[file:comparison-3-sched-original-vs-forcing.pdf]]
+
+** Small Matrices 12*960
+*** Processing raw files
+**** Original Code
+#+name: rawDir12
+#+begin_src sh :results output  :var rawPath="./data/chameleon-idcin2-604020/12/" :cache yes :noexport:
+    tmpDir=$(mktemp -d)
+    echo -n "$tmpDir"
+    for file in `find $rawPath -name "SoloStarpuData-*-*org"`;  do 
+        filen=`basename $file`
+	Sched=`echo $filen | cut -d"-" -f2`;  
+	rep=`echo $filen | cut -d"-" -f3`; 
+	rep=`echo $rep | cut -d"." -f1`; 
+	./get_trace.sh -t $file $tmpDir/paje-$Sched-$rep; 
+	grep "nready\|nsubmitted" $tmpDir/paje-$Sched-$rep.trace > $tmpDir/paje-$Sched-$rep-sub-ready-tmp.txt
+	tail -n +3 $tmpDir/paje-$Sched-$rep-sub-ready-tmp.txt > $tmpDir/paje-$Sched-$rep-sub-ready.txt
+	./get_tasksrec.sh $file $tmpDir/tasks-$Sched-$rep; 
+	cat $tmpDir/tasks-$Sched-$rep.rec | sed -n '/^DependsOn\|^JobId/p' | sed  's/JobId: //g' | sed  ':a;N;$!ba;s/\nDependsOn: /,/g' >  $tmpDir/tasks-$Sched-$rep.rec.csv ;
+    done
+#+end_src
+
+#+RESULTS[fbddb5be2eed2eabd0693e8363071761ed532503]: rawDir12
+: /tmp/tmp.cpKKcgEZxq
+
+
+**** TRSM/SYRK on GPU
+#+name: rawDir12tsgpu
+#+begin_src sh :results output  :var rawPath="./data/chameleon-idcin2-trsmsyrkGPU/12/" :cache yes :noexport:
+    tmpDir=$(mktemp -d)
+    echo -n "$tmpDir"
+    for file in `find $rawPath -name "SoloStarpuData-*-*org"`;  do 
+        filen=`basename $file`
+	Sched=`echo $filen | cut -d"-" -f2`;  
+	rep=`echo $filen | cut -d"-" -f3`; 
+	rep=`echo $rep | cut -d"." -f1`; 
+	./get_trace.sh -t $file $tmpDir/paje-$Sched-$rep; 
+	grep "nready\|nsubmitted" $tmpDir/paje-$Sched-$rep.trace > $tmpDir/paje-$Sched-$rep-sub-ready-tmp.txt
+	tail -n +3 $tmpDir/paje-$Sched-$rep-sub-ready-tmp.txt > $tmpDir/paje-$Sched-$rep-sub-ready.txt
+	./get_tasksrec.sh $file $tmpDir/tasks-$Sched-$rep; 
+	cat $tmpDir/tasks-$Sched-$rep.rec | sed -n '/^DependsOn\|^JobId/p' | sed  's/JobId: //g' | sed  ':a;N;$!ba;s/\nDependsOn: /,/g' >  $tmpDir/tasks-$Sched-$rep.rec.csv ;
+    done
+#+end_src
+
+
+
+
+
+*** Loading files
+**** Original Code
+#+name: data12
+#+begin_src R :results output :session R3  :var rawDir12=rawDir12 :var fdep=readmultiplecsv :var fdep2=readmultipletasksrec :var fdep3=readmultiplesubready :cache yes :noexport:
+dtAll12 <- readMultipleCsv(rawDir12, "*[^rec].csv")
+dtSubReady12 <- readMultipleSubReady(rawDir12, "*sub-ready.txt")
+dtDep12 <- readMultipleTasksRec(rawDir12, "*.rec.csv")
+#+end_src
+
+
+
+**** TRSM/SYRK on GPU
+#+name: data12tsgpu
+#+begin_src R :results output :session R3  :var rawDir12tsgpu=rawDir12tsgpu :var fdep=readmultiplecsv :var fdep2=readmultipletasksrec :var fdep3=readmultiplesubready :cache yes :noexport:
+dtAll12tsgpu <- readMultipleCsv(rawDir12tsgpu, "*[^rec].csv")
+dtSubReady12tsgpu <- readMultipleSubReady(rawDir12tsgpu, "*sub-ready.txt")
+dtDep12tsgpu <- readMultipleTasksRec(rawDir12tsgpu, "*.rec.csv")
+#+end_src
+
+
+
+
+
+
+
+
+*** Paper Pictures
+**** 1B - Half size gantt with dependencies and outliers (half width)
+#+name: small1
+#+begin_src R :results output graphics :file half-size-gantt-dep-outliers.pdf  :width 9.4 :height 6 :session R3 :var fdep=ganttpotrfdepoutliers :noexport:
+  MinX <- 25 # avoid white space before first object
+  MaxX <- max(dtAll12[r=="2" & Sched=="dmdas" ]$End)
+  gantt_potrfdepoutliers(dtAll12[r=="2" & Sched=="dmdas" ], dtDep12[r=="2" & Sched=="dmdas" ], 3, idlePercentage=FALSE) + scale_x_continuous("Time [ms]") +
+     theme(legend.box = "horizontal", legend.margin = unit(-0.07, "cm"), legend.background = element_blank()) + scale_color_discrete(name="Critical Paths") + coord_cartesian(xlim=c(20, MaxX)); 
+#+end_src
+
+#+RESULTS:
+[[file:half-size-gantt-dep-outliers.pdf]]
+
+***** plotly version
+#+name: small1plotly
+#+begin_src R :results value file :var htmlout="half-size-gantt-dep-outliers.html" :exports results :session R3  :noexport:
+htmlwidgets::saveWidget(as.widget(
+    ggplotly(gantt_potrfdepoutliers(dtAll12[r=="2" & Sched=="dmdas" ], dtDep12[r=="2" & Sched=="dmdas" ], 3, TRUE, idlePercentage=FALSE) + scale_x_continuous("Time [ms]") + theme(legend.title=element_blank(), legend.margin = unit(-0.1, "cm")))
+), htmlout) 
+print(htmlout)
+#+end_src
+
+#+RESULTS:
+[[file:half-size-gantt-dep-outliers.html]]
+
+**** 2 - Comparison Original vs Forcing TRSM/SYRK on GPUs 
+#+name: small2
+#+begin_src R :results output graphics :file comparison-original-forcing-trsm-syrk-on-gpus.pdf  :width 27 :height 10 :session R3 :var fdep=ganttpotrfdepoutliers :noexport:
+MaxX  <- max(max(dtAll12[r=="1" & Sched=="dmda" ]$End),
+             max(dtAll12tsgpu[r=="1" & Sched=="dmda" ]$End),
+             max(dtAll12[r=="1" & Sched=="dmdas" ]$End), 
+             max(dtAll12tsgpu[r=="1" & Sched=="dmdas" ]$End),
+             max(dtAll12[r=="1" & Sched=="ws" ]$End),
+             max(dtAll12tsgpu[r=="1" & Sched=="ws" ]$End))
+MinX <- 30 # avoid white space before first object
+
+grid.arrange(
+#    arrangeGrob(
+        gantt_potrfdepoutliers(dtAll12[r=="1" & Sched  %in% c("dmda", "dmdas", "ws") ], dtDep12[r=="1" & Sched  %in% c("dmda", "dmdas", "ws") ], 4, idlePercentage=FALSE) + facet_grid(~Sched, labeller= labeller(Sched=toupper)) + scale_x_continuous("Time [ms]") + theme(legend.box = "horizontal", legend.title=element_blank(), legend.margin = unit(-0.05, "cm"), legend.background = element_blank(), strip.background = element_blank(), strip.text.x = element_text(size = 24)) + coord_cartesian(xlim=c(MinX, MaxX)) + theme(strip.text.x = element_blank()),
+#       left=textGrob("Unconstrained", gp = gpar(fontsize=26), rot=90)),
+#    arrangeGrob(
+        gantt_potrfdepoutliers(dtAll12tsgpu[r=="1" & Sched  %in% c("dmda", "dmdas", "ws") ], dtDep12tsgpu[r=="1" & Sched  %in% c("dmda", "dmdas", "ws") ], 4, idlePercentage=FALSE) + facet_grid(~Sched, labeller= labeller(Sched=toupper)) + scale_x_continuous("Time [ms]") + theme(legend.box = "horizontal", legend.title=element_blank(), legend.margin = unit(-0.05, "cm"), legend.background = element_blank(), strip.background = element_blank(), strip.text.x = element_text(size = 24)) + coord_cartesian(xlim=c(MinX, MaxX)) + theme(strip.text.x = element_blank()),
+#       left=textGrob("Constrained", gp = gpar(fontsize=26), rot=90)),
+    heights = c(1,1), nrow=2)
+
+
+#+end_src
+
+#+RESULTS:
+[[file:comparison-original-forcing-trsm-syrk-on-gpus.pdf]]
+
+***** plotly version
+#+name: small2plotly
+#+begin_src R :results valuel file :exports results :session R3  :var rmdFile=(org-babel-temp-file "flexdashboard" ".Rmd") :var outFile="comparison-original-forcing-trsm-syrk-on-gpus.html" :noexport:
+MaxX  <- max(max(dtAll12[r=="1" & Sched=="dmda" ]$End),
+             max(dtAll12tsgpu[r=="1" & Sched=="dmda" ]$End),
+             max(dtAll12[r=="1" & Sched=="dmdas" ]$End), 
+             max(dtAll12tsgpu[r=="1" & Sched=="dmdas" ]$End),
+             max(dtAll12[r=="1" & Sched=="ws" ]$End),
+             max(dtAll12tsgpu[r=="1" & Sched=="ws" ]$End))
+MinX <- 30 # avoid white space before first object
+
+cat('
+---
+title: "12 x 12 (960)"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+---
+
+    
+Row
+-------------------------------------
+    
+### Original code (Unconstrained)
+    
+```{r}
+ggplotly(gantt_potrfdepoutliers(dtAll12[r=="1" & Sched  %in% c("dmda", "dmdas", "ws") ], dtDep12[r=="1" & Sched  %in% c("dmda", "dmdas", "ws") ], 4, TRUE, idlePercentage=FALSE) + facet_grid(~Sched, labeller= labeller(Sched=toupper)) + scale_x_continuous("Time [ms]") + theme(legend.box = "horizontal", legend.title=element_blank(), legend.margin = unit(-0.05, "cm"), legend.background = element_blank(), strip.background = element_blank(), strip.text.x = element_text(size = 24)) + coord_cartesian(xlim=c(MinX, MaxX)) + theme(strip.text.x = element_blank()))
+```
+ 
+Row
+-------------------------------------
+    
+### TRSM/SYRK on GPU (Constrained)
+    
+```{r}
+ggplotly(gantt_potrfdepoutliers(dtAll12tsgpu[r=="1" & Sched  %in% c("dmda", "dmdas", "ws") ], dtDep12tsgpu[r=="1" & Sched  %in% c("dmda", "dmdas", "ws") ], 4, TRUE, idlePercentage=FALSE) + facet_grid(~Sched, labeller= labeller(Sched=toupper)) + scale_x_continuous("Time [ms]") + theme(legend.box = "horizontal", legend.title=element_blank(), legend.margin = unit(-0.05, "cm"), legend.background = element_blank(), strip.background = element_blank(), strip.text.x = element_text(size = 24)) + coord_cartesian(xlim=c(MinX, MaxX)) + theme(strip.text.x = element_blank()))
+```
+    
+', file=rmdFile)
+
+basename(rmarkdown::render(rmdFile, output_dir="./", output_file=outFile))
+#+end_src
+
+#+RESULTS:
+[[file:comparison-original-forcing-trsm-syrk-on-gpus.html]]
+
+** DAG 5*960
+*** Processing raw files
+**** TRSM/SYRK on GPU
+#+name: rawDir5tsgpu
+#+begin_src sh :results output  :var rawPath="./data/chameleon-idcin2-trsmsyrkGPU/5/" :cache yes :noexport:
+    tmpDir=$(mktemp -d)
+    echo -n "$tmpDir"
+    for file in `find $rawPath -name "SoloStarpuData-*-*org"`;  do 
+        filen=`basename $file`
+	Sched=`echo $filen | cut -d"-" -f2`;  
+	rep=`echo $filen | cut -d"-" -f3`; 
+	rep=`echo $rep | cut -d"." -f1`; 
+	./get_trace.sh -t $file $tmpDir/paje-$Sched-$rep; 
+	grep "nready\|nsubmitted" $tmpDir/paje-$Sched-$rep.trace > $tmpDir/paje-$Sched-$rep-sub-ready-tmp.txt
+	tail -n +3 $tmpDir/paje-$Sched-$rep-sub-ready-tmp.txt > $tmpDir/paje-$Sched-$rep-sub-ready.txt
+	./get_tasksrec.sh $file $tmpDir/tasks-$Sched-$rep; 
+	cat $tmpDir/tasks-$Sched-$rep.rec | sed -n '/^DependsOn\|^JobId/p' | sed  's/JobId: //g' | sed  ':a;N;$!ba;s/\nDependsOn: /,/g' >  $tmpDir/tasks-$Sched-$rep.rec.csv ;
+    done
+#+end_src
+
+*** Loading files 
+**** TRSM/SYRK on GPU
+#+name: data5tsgpu
+#+begin_src R :results output :session R3  :var rawDir5tsgpu=rawDir5tsgpu :var fdep=readmultiplecsv :var fdep2=readmultipletasksrec :var fdep3=readmultiplesubready :cache yes :noexport:
+dtAll5tsgpu <- readMultipleCsv(rawDir5tsgpu, "*[^rec].csv")
+dtDep5tsgpu <- readMultipleTasksRec(rawDir5tsgpu, "*.rec.csv")
+#+end_src
+
+#+RESULTS[6749e8f6d1f7f7bf981af5211515f144acafc5d6]: data5tsgpu
+
+*** Paper Pictures
+**** DAG cholesky 5x5 
+Creating DOT file
+#+name: dag5
+#+begin_src R :results output  :session R3 :var fdep=makedag :var dagoutfile="dag-5x5.dot"  :noexport:
+makedag(dtAll5tsgpu[Sched=="dmda" & r=="1"], dtDep5tsgpu[Sched=="dmda" & r=="1"], dagoutfile)
+#+end_src
+
+#+RESULTS: dag5
+
+
+Converting to pdf
+#+name: dag5pdf
+#+begin_src sh  :results value file  :var dep=dag5 :noexport:
+dot -Tpdf dag-5x5.dot -o dag-5x5.pdf
+echo "dag-5x5.pdf"
+#+end_src
+
+#+RESULTS: dag5pdf
+[[file:dag-5x5.pdf]]
+
+
+
+** Combo 
+Convert svg to pdf
+#+name: combo
+#+begin_src sh :results output :exports both
+inkscape combo.svg --export-pdf=combo.pdf
+#+end_src
+** Generate pdf pictures
+Execute this code (ctrl+c ctrl+c) to generate all the figures used in the paper
+#+name: generatepictures
+#+begin_src R :results output  :session R3 :var dep=data12 :var dep2=data12tsgpu :var gdep=small1 :var gdep2=small2  :var igdep=small1plotly :var igdep2=small2plotly :var dep3=data60 :var dep4=data60tsgpu :var gdep3=large1 :var gdep4=large2 :var dep5=data5tsgpu :var gdep5=dag5pdf :noexport:
+print(sprintf("Figure 1 (pdf version): %s", gdep5))
+print(sprintf("Figure 3 (pdf version): %s", gdep))
+print(sprintf("Figure 3 (interactively html version): %s", igdep))
+print(sprintf("Figure 4 (pdf version): %s", gdep2))
+print(sprintf("Figure 4 (interactively html version): %s", igdep2))
+print(sprintf("Figure 5 (pdf version): %s", gdep3))
+print(sprintf("Figure 6 (pdf version): %s", gdep4))
+#+end_src
+
+#+RESULTS:
+: [1] "Figure 3 (pdf version): half-size-gantt-dep-outliers.pdf"
+: [1] "Figure 4 (interactively html version): half-size-gantt-dep-outliers.html\n"
+: [1] "Figure 3 (pdf version): comparison-original-forcing-trsm-syrk-on-gpus.pdf"
+: [1] "Figure 4 (interactively html version): comparison-original-forcing-trsm-syrk-on-gpus.html\n"
+: [1] "Figure 1 (pdf version): dag-5x5.pdf"
+
+
+#+name: croppdfs
+#+begin_src sh :results output  :var dep=generatepictures :var gdep=pdfcrop(file="./half-size-gantt-dep-outliers.pdf") :var gdep2=pdfcrop(file="./comparison-original-forcing-trsm-syrk-on-gpus.pdf") :var gdep3=pdfcrop(file="./full-size-extended-gantt.pdf") :var gdep4=pdfcrop(file="./comparison-3-sched-original-vs-forcing.pdf")  :var gdep5=pdfcrop(file="./dag-5x5.pdf") :var gdep6=pdfcrop(file="./combo.pdf") :noexport:
+   print(sprintf("Figure 1 (cropped pdf version): %s", gdep5))
+   print(sprintf("Figure 2 (cropped pdf version): %s", gdep6))
+   print(sprintf("Figure 3 (cropped pdf version): %s", gdep))
+   print(sprintf("Figure 4 (cropped pdf version): %s", gdep2))
+   print(sprintf("Figure 5 (cropped pdf version): %s", gdep3))
+   print(sprintf("Figure 6 (cropped pdf version): %s", gdep4))
+#+end_src
+
+#+RESULTS:
+
+
+* Reproducing this paper                                           :noexport: 
+1) Tangle this file (C-c C-v t)
+2) Execute the following lines (C-c C-c)
+#+call: croppdfs() :results output silent
+#+call: ieeetran() :results output silent
+4) Export this file to latex (C-c C-e l l)
+3) Execute the following code block (C-c C-c)
+#+begin_src sh :results output 
+   #make distclean
+   #make 
+   pdflatex vpa2016
+   bibtex vpa2016
+   pdflatex vpa2016
+   pdflatex vpa2016
+#+end_src
+
+#+RESULTS:
+
+
+
+* IEEETran configuration for org export + ignore tag (Start Here)  :noexport:
+#+name: ieeetran
+#+begin_src emacs-lisp :results output :session :exports both
+(add-to-list 'load-path ".")
+(require 'ox-extra)
+(ox-extras-activate '(ignore-headlines))
+(add-to-list 'org-latex-classes
+             '("IEEEtran"
+               "\\documentclass{IEEEtran}"
+               ("\\section{%s}" . "\\section*{%s}")
+               ("\\subsection{%s}" . "\\subsection*{%s}")
+               ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
+               ("\\paragraph{%s}" . "\\paragraph*{%s}")
+               ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))
+#+end_src
+
+#+RESULTS:
+
+* Template Instructions for VPA2016                                :noexport:
+
+Website of the event:
+- http://www.cedmav.org/events/vpa-2016.html
+
+The article should be limitted to  8 pages using IEEEtran:
+- http://www.ieee.org/conferences_events/conferences/publishing/templates.html
+
+* *The Paper*                                                       :ignore:
+** Latex configurations                                             :ignore:
+
+#+BEGIN_LaTeX
+\let\oldcite=\cite
+\renewcommand\cite[2][]{~\ifthenelse{\equal{#1}{}}{\oldcite{#2}}{\oldcite[#1]{#2}}\xspace}
+%\def\cite#1{~\oldcite{#1}\xspace}
+\let\oldref=\ref
+\def\ref#1{~\oldref{#1}\xspace}
+\def\ie{i.e.,\xspace}
+\def\eg{e.g.,\xspace}
+\def\etal{\textit{et al.}\xspace}
+\def\accolade#1{$\left\{\begin{array}{c}\vspace{#1}\end{array}\right.$}%
+\newcommand{\AL}[2][inline]{\todo[color=green!50,#1]{\small\sf \textbf{AL:} #2}}
+\newcommand{\LMS}[2][inline]{\todo[color=blue!50,#1]{\small\sf \textbf{Lucas:} #2}}
+\newcommand{\LS}[2][inline]{\todo[color=yellow!50,#1]{\small\sf \textbf{Luka:} #2}}
+\newcommand{\VGP}[2][inline]{\todo[color=orange!50,#1]{\small\sf \textbf{VGP:} #2}}
+
+
+\let\oldtexttt=\texttt
+\def\texttt#1{\oldtexttt{\smaller[1]{#1}}}
+\def\starpu{StarPU\xspace}
+\def\DGEMM{\texttt{dgemm}\xspace}
+\def\DGEMMs{\texttt{dgemm}s\xspace}
+\def\DPOTRF{\texttt{dpotrf}\xspace}
+\def\DSYRK{\texttt{dsyrk}\xspace}
+\def\DTRSM{\texttt{dtrsm}\xspace}
+\def\Idle{\texttt{Idle}\xspace}
+\definecolor{dpotrfcolor}{rgb}{0.8675,0,0}
+\definecolor{dgemmcolor}{rgb}{0,0.5625,0}
+\definecolor{dsyrkcolor}{rgb}{0.5625,0,0.5625}
+\definecolor{dtrsmcolor}{rgb}{0,0,0.8675}
+
+% reduce padding after captions
+% \setlength{\belowcaptionskip}{-.4\baselineskip}
+#+END_LaTeX
+
+** Frontpage                                                        :ignore:
+#+BEGIN_LaTeX
+\title{Analyzing Dynamic Task-Based Applications on Hybrid Platforms: An Agile Scripting Approach}
+%Investigating the Impact of Different Schedulers with Chameleon+StarPu Traces}
+
+% author names and affiliations
+% use a multiple column layout for up to three different
+% affiliations
+\author{
+
+% First Author
+\IEEEauthorblockN{
+   Vinícius Garcia Pinto\IEEEauthorrefmark{1}\IEEEauthorrefmark{3},
+   Luka Stanisic\IEEEauthorrefmark{2},
+   Arnaud Legrand\IEEEauthorrefmark{3}, \\
+   Lucas Mello Schnorr\IEEEauthorrefmark{1}, 
+   Samuel Thibault\IEEEauthorrefmark{2},
+   Vincent Danjean\IEEEauthorrefmark{3}}
+
+\IEEEauthorblockA{\IEEEauthorrefmark{1}
+Institute of Informatics, Federal University of Rio Grande do Sul – UFRGS, Porto Alegre, Brazil}
+
+\IEEEauthorblockA{\IEEEauthorrefmark{2}Inria Bordeaux Sud-Ouest, France \hfill \IEEEauthorrefmark{3}CNRS -- Univ. Grenoble Alpes, France}}
+#+END_LaTeX
+
+#+LaTeX: \maketitle
+
+** Abstract                                                         :ignore:
+
+#+LaTeX: \begin{abstract}
+
+In this paper, we present visual analysis techniques to evaluate the
+performance of HPC task-based applications on hybrid
+architectures. Our approach is based on composing modern data analysis
+tools (pjdump, R, ggplot2, plotly), enabling an agile and flexible
+scripting framework with minor development cost. We validate our
+proposal by analyzing traces from the full-fledged implementation of
+the Cholesky decomposition available in the MORSE library running on a
+hybrid (CPU/GPU) platform. The analysis compares two different
+workloads and three different task schedulers from the StarPU runtime
+system.  Our  analysis based on composite views allows to
+identify allocation mistakes, priority problems in scheduling
+decisions, GPU tasks anomalies causing bad performance, and
+critical path issues.
+#+LaTeX: \end{abstract}
+
+** Introduction
+
+To fulfill the ever-growing need for computation power of High
+Performance Computing (HPC) applications, it has become common to rely on
+hybrid nodes, composed of multi-core processors (CPUs) with multiple
+accelerators (GPUs). However, due to the heterogeneity and 
+complexity of such machines, achieving portable and scalable
+performance has become extremely challenging. A possible solution,
+increasingly used by the community, is to program application at a
+high level, independently of the hardware architecture, as a Directed
+Acyclic Graph (DAG) of tasks. It is then the responsibility of,
+another software layer, called the runtime, to dynamically schedule 
+the resulting tasks on the different computing resources taking into
+account the possible speed heterogeneity and variability as well as to
+automatically take care of data movements between resources. 
+This allows to remove artificial synchronizations from the
+application code, implementing complex scheduling and data movement
+algorithms (such as HEFT\cite{heft2992topcuoglu}) that would be hard
+to manually incorporate in the application. Thanks to dynamic decisions,
+the irregular behavior of applications and resources is absorbed and exploited by
+the scheduler during execution, effectively balancing load among
+computing resources.
+
+Task-based executions on hybrid platforms are
+inherently stochastic. Task mapping, for instance, can drastically
+change from one execution to another. From the performance analysis
+perspective, the nature of such dynamic and opportunistic execution
+schemes makes classical performance analysis totally ineffective. 
+At the same time, application and runtime developers seek to
+understand the attained performance to improve the application
+design and scheduling decisions. This investigation is challenging
+because it is hard to compare many traces when
+parameters that affect scheduling decisions and task
+generation are changed.
+
+In this article, we explain how we designed a tool that
+enables an easy and faithful identification of
+subtle scheduling problems that would otherwise go unnoticed
+and misunderstood with classical trace visualization
+approaches. We built the framework@@latex: \footnote{Code available at
+\url{http://perf-ev-runtime.gforge.inria.fr/vpa2016/}}@@ on top of modern data analytics
+tools, combining the R programming language (and in particular the ggplot2 library) and
+org-mode\cite{orgmode}. The tool combination comes at a very low development cost
+when compared to a traditional and monolithic performance
+visualization tool. The designed views depict task execution
+along time for each resource, automatically detecting several
+interleaving critical paths in traces.  We
+demonstrate the effectiveness of our visualization approach by
+analyzing traces from the dense linear algebra Cholesky factorization of
+the Chameleon/MORSE package\cite{agullo2012morse}, implemented using the
+StarPU task-based runtime\cite{augonnet2011starpu}. Two representative
+factorization workloads are carried out on a hybrid multi-core/multi-GPU
+architecture.  The large workload brings interesting insights
+on pinpointing resource usage mistakes and comparing three StarPU schedulers
+(DMDA, DMDAS and Work Stealing). The smaller workload
+shows that the dynamic critical path analysis
+provide hints for optimizations.
+
+Section\ref{sec.context} provides some background on task-based
+runtimes for hybrid platforms and on the Cholesky algorithm.
+Section\ref{sec.relatedwork} presents some related work on
+trace visualization, motivating our own
+study. Section\ref{sec.proposal} presents our trace
+visualization proposal for the performance analysis of task-based
+runtimes. In Section\ref{sec.usecases} we detail two case studies
+demonstrating the effectiveness of our visualization
+strategy. Section\ref{sec.conclusion} gives a summary of results and
+future work.
+
+*** Plan                                                         :noexport:
+
+- hybrid heterogenous nodes are commonplace and the most effective
+  way to exploit them is to rely on dynamic runtimes
+- such runtimes allow to remove synchronization points to the
+  minimum and rely on smart/advanced/complex scheduling and data
+  movement algorithms.
+- Furthermore the executions are stochastic. Such dynamic and
+  opportunistic execution schemes make classical performance
+  analysis totally ineffective.
+- Understanding the performance of such runtimes and how to improve
+  them further is thus very challenging. It is very difficult to
+  compare one execution trace to another when changing such or such
+  parameter
+- In this article, we explain how we designed from modern data
+  analytics tools and at very low development cost some effective
+  visualization that allow the runtime developer to easily and
+  faithfully identify subtle scheduling problems that would go
+  unnoticed and not well understood with classical trace
+  visualization approaches.
+- We demonstrate the effectiveness of our approach by analyzing
+  the MORSE dense linear algebra Cholesky algorithm running on top
+  of the StarPU runtime and of a hybrid multi-core and multi-GPU
+  architecture. 
+
+** Background and Experimental Context
+\label{sec.context}
+
+*** Background on Task-based Runtimes                              :ignore:
+\label{sec.background}
+
+Traditional bulk-synchronous parallel (BSP) applications, made of
+supersteps (computation, communication, barrier),
+is a very common design when computing resources are homogeneous. The
+trend towards heterogeneous resources with 
+accelerators, such as GPUs, makes the task-based programming paradigm
+much more suitable. Depending on the sophistication of the 
+runtime scheduling algorithms, applications can more or less
+efficiently exploit heterogeneous configurations.
+
+Several runtimes targeting hybrid platforms have been developed in the
+recent years.
+MAGMA\cite{agullo2009magma}, for instance, combines
+multi-core with GPUs for linear algebra applications. OmpSs\cite{duran2011ompss}
+provides an extension to OpenMP tasks through new directives that
+allow to support multi-core systems combined with
+GPUs. PaRSEC\cite{bosilca2012parsec} is a generic framework for
+architecture aware scheduling of tasks on many-core heterogeneous
+clusters. StarPU\cite{augonnet2011starpu} is a task parallelism
+runtime initially designed to exploit hybrid architectures and 
+additionally providing a
+MPI-based extension\cite{augonnet2012starpumpi} to exploit several
+nodes at once. Dense/sparse linear algebra have been among the first
+applications to exploit such runtimes but other applications have been
+also implemented, such as FEM applications\cite{ohshima2013FEMstarpu}, seismic
+wave modeling\cite{martinez2015towards}, and
+others\cite{agullo2016conjugate,lacoste2014sparse}.
+
+# hybrid/heterogeneous (CPU+GPU) \to moving from BPS to DAG
+# - runtimes (magma, ompss, starpu, ..)
+# - dense and sparse linear algebra
+# - Other apps
+# Almost nothing yet for analysis. 
+
+*** Experimental Context and Workload Details                      :ignore:
+#+LaTeX: \subsubsection*{Experimental Context and Workload Details}
+\label{sec.setup}
+
+We propose to build on a relatively representative use case to address
+the lack of adequate visualization tools for task-based
+applications. We use traces of the dense linear algebra Cholesky
+factorization, more specifically of the full-fledged implementation from
+the MORSE library\cite{agullo2012morse}, compiled with the CUBLAS
+kernels. A simplified version of this
+application is shown in Figure\ref{fig:cholesky}; and the
+corresponding DAG for a $5\times5$ matrix size is shown on its
+right (Figure\ref{fig:dag5x5}). For each step $k$
+of the outer loop, one \DPOTRF task releases
+$\scriptstyle N-k$ \DTRSM and \DSYRK tasks, followed by $\scriptstyle
+\approx (N-k)^2/2$ \DGEMM tasks.
+The dependencies indicate that simultaneous execution of several
+iterations is possible and that the iteration size decreases at the same
+time as $k$ increases. So, the potential parallelism gets reduced as the
+algorithm advances (see the DAG of the figure). Finally,
+the task's execution time highly depends on the task (\DPOTRF, \DTRSM,
+\DSYRK, and \DGEMM) and resource types (CPU or GPU). We have used
+the CUBLAS without the \DPOTRF code.
+Hence, \DPOTRF tasks can only be run on CPUs.
+
+# - Cholesky
+#   - Boucle extern DPOTRF
+#   - Ça genere ensuite beaucoup de parallelism
+#   - à l'étape k
+#     - N-k DTRSM
+#     - N-k DSYRK
+#     - (N-k)^2/2 DGEMM
+#   - Les differences de performance entre les kernel
+#   - According to the task dependencies, the iteration K+1 may start well before the end of step K
+#     - And the size of each step descreases as K inscrease
+#   - This changes explaining better the Cholesky code might reduce the
+#     "Expectations" part in the result sections
+
+
+# The runtime system infers tasks dependencies analyzing which
+# matrix blocks are read/written by each task.
+
+# #+LaTeX: \LMS{This code should be put in a listing environment, with reduzed font size (8pt, for instance). Perhaps we should also remove the parameters of the MORSE\_TASK\_* calls.}
+# # Original code at: https://scm.gforge.inria.fr/anonscm/svn/morse/trunk/chameleon/compute/pzpotrf.c
+# #+begin_src C :results value :exports code :session eval: no
+# for (k = 0; k < A->mt; k++) { ...
+#   MORSE_TASK_dpotrf(
+#     &options,
+#     MorseLower, tempkm, A->mb,
+#     A(k, k), ldak, A->nb*k);
+#   for (m = k+1; m < A->mt; m++) { ...
+#     MORSE_TASK_dtrsm(
+#       &options,
+#       MorseRight, MorseLower, 
+#       MorseTrans, MorseNonUnit,
+#       tempmm, A->mb, A->mb,
+#       zone, A(k, k), ldak,
+#       A(m, k), ldam);
+#   }
+#   for (n = k+1; n < A->nt; n++) { ...
+#     MORSE_TASK_dsyrk(
+#       &options,
+#       MorseLower, MorseNoTrans,
+#       tempnn, A->nb, A->mb,
+#       -1.0, A(n, k), ldan,
+#       1.0, A(n, n), ldan);
+#     for (m = n+1; m < A->mt; m++) { ...
+#       MORSE_TASK_dgemm(
+#         &options,
+#         MorseNoTrans, MorseTrans,
+# 	    tempmm, tempnn, A->mb, A->mb,
+# 	    mzone, A(m, k), ldam,
+# 	    A(n, k), ldan,
+# 	    zone,  A(m, n), ldam);
+#     }
+#   }
+# }
+# #+end_src
+
+#+BEGIN_LaTeX
+\begin{figure}[!htb]
+\vspace{-.5cm}
+\centering
+\subfloat[The Cholesky Algorithm.\label{fig:cholesky}]{%
+\begin{minipage}[b]{.475\linewidth}
+\lstset{frame=bt,backgroundcolor=\color{white},numbers=none,numberstyle=\tt\prettysmall,escapechar=|}\lstinputlisting{cholesky.c}%
+\end{minipage}}
+\hfill
+\subfloat[Corresponding DAG for $N=5$.\label{fig:dag5x5}]{\includegraphics[width=.475\linewidth]{dag-5x5-crop.pdf}}
+\caption{The Cholesky code and its DAG (for $N=5$).}
+\label{fig:dag5}
+\end{figure}
+#+END_LaTeX
+
+Since hybrid heterogeneous nodes motivate the development of
+task-based runtimes,  we execute
+this Cholesky implementation over IdCin2, a machine with two
+14-core Intel(R) Xeon(R) CPU E5-2697v3@2.6GHz and three
+NVIDIA Titan X. From this set of resources, only 25 CPU cores
+participate in the computation because it is generally more efficient
+to let StarPU dedicate one core to
+manage each GPU.
+StarPU provides several scheduling algorithms that exploit both the DAG structure
+(through critical-path based heuristics) and performance
+models. Here, we focus on three of them.
+
+The *DMDA* (Deque Model Data Aware) scheduler is a /list scheduler/, i.e.,
+every time a resource is idle, if a task is ready, it will be
+scheduled on this particular resource. Such a scheduler therefore
+never leaves a resource idle on purpose, which ensures the
+well-known $(2-1/p)$ competitive ratio for homogeneous
+machines\cite{Graham66}. Deciding which ready task to select has a major
+influence in practice and the classical heuristic consists on
+prioritizing tasks based on the critical path. However, the
+critical path notion is dynamic and obtaining a proper estimation can be quite
+challenging. With heterogeneous computing resources, such
+prioritization is generally done with variants of the HEFT
+(Heterogeneous Earliest Finish Time) strategy\cite{heft2992topcuoglu}. The DMDA algorithm is a
+very greedy heuristic that schedules tasks in the order they become available, without taking
+critical path priorities into account. However, it considers
+data transfer time between CPUs and GPUs as well as the relative
+performance of resources on each computation kernel when taking
+its decision.  The *DMDAS* (Deque Model Data Aware Sorted) scheduler is
+similar to the first strategy, except that it sorts tasks by priority,
+which can be expensive when the number of tasks is large. It
+is therefore rather close to the original HEFT algorithm by respecting
+priorities and taking past scheduling decisions into account. Finally, the *WS*
+(Work Stealing) scheduler uses a queue per worker; new tasks are kept
+local by default. When a worker is
+idle, it steals tasks from the most loaded worker.
+
+The next section presents related work on performance analysis for BSP and
+DAG-based HPC programming models. We detail the issues of current
+solutions, motivating our work.
+
+** Related Work and Motivation
+\label{sec.relatedwork}
+
+Despite the plethora of runtimes to execute task-based applications on
+heterogeneous resources (see Section\ref{sec.background}),
+there are very few established tools to conduct a proper task-aware
+analysis. Developers usually rely on 
+BSP-based trace visualization tools, whose objectives are different,
+seeking unexpected heterogeneity where regular, homogeneous behavior
+is normal. Such tools are therefore unsuitable for visualizing
+task execution behavior since heterogeneity is the expected scenario
+for task-based applications.   We briefly detail trace
+visualization strategies for BSP and DAG-based applications to better
+understand their differences. We also describe the design challenges 
+of novel trace visualization techniques for DAG applications, as well
+as the typical questions usually raised during the analysis process.
+
+*** Trace visualization analysis for BSP-based applications
+
+Many tools exist to visualize traces from BSP-based
+applications. Most are focused on 
+MPI applications. The common technique
+is based on Gantt charts, depicting each thread behavior along
+time. Behavior is drawn using colors
+to represent different thread states \eg MPI operation.
+Message-passing is depicted with arrows from source
+to destination, sometimes annotated with the amount of
+transferred data. Vite\cite{Vite2009} is an OpenGL-based
+open-source tool that has such a view, capable to visualize
+large traces with thread states and communication.
+Since this tool relies in the semantic-free 
+Paje language\cite{pajelang}, it can depict virtually any kind of
+traces. Paraver\cite{pillet1995paraver} is another open-source
+Gantt tool that allows filtering, zooming and
+graphical trace aggregation. Its format also enables the visualization
+of many HPC programming
+models combinations. Vampir\cite{knupfer2008vampir} is a
+closed-source visualization tool with multiple views for MPI-based
+OTF2 trace files.
+ It is more scalable than similar tools due to its
+ distributed organization.
+
+*** Visualizing task execution traces from DAG applications
+There are a few tools to perform analysis and visualization of
+task-based executions. Typically, they are built with
+resources not designed for data analysis and rely on either
+non-scalable or non-scriptable strategies \ie with mouse pointer
+interaction. DAGViz\cite{huynh2015dagviz} offers a visual
+representation of task-based executions focusing on the DAG structure,
+which is retrieved using macros (translated to Cilk, Intel TBB or OpenMP)
+and presented in a hierarchical way. The resulting DAG can be
+folded/unfolded on-demand to show details and the node
+color indicates where they are executed. There is no way to retrieve
+the time dimension and task duration, which can make performance analysis
+difficult.
+#+Latex: %
+#+Latex: %
+Kurzak\cite{kurzak2015taskdep} proposes an interactive Gantt chart
+enhanced with dependencies, drawn as edges between tasks. We believe
+this approach suffers from three issues. First, in term of
+scalability, since (\eg in
+Cholesky) tasks typically have many ($\scriptstyle \approx N$) dependencies,
+drawing everything and finding /interesting/ tasks and
+dependencies only through mouse interaction can be very tedious. In
+practice, only tasks belonging to the critical path are
+important. Second, only one-level dependencies are depicted, while
+several levels are required to understand the history leading to
+the scheduling problem. Third, this tool does not really exploit the 
+heterogeneity of resources.
+
+# We tried to address all these issues in our framework.
+*** Challenges of DAG execution traces analysis
+
+The performance analysis of task-based applications
+raises many challenges. The stochastic behavior
+of scheduling decisions induced by actual resource availability and
+by the task execution variability hinders the performance reproducibility.
+Moreover, executions are
+apparently unstructured, with no clear phases as in the BSP model. At
+the same time, task dependencies are part of the application, and
+should be exploited by the analyst to understand bottlenecks.
+
+Traces are generally much larger than the available screen
+space and naively displaying everything generally leads to biased
+views\cite{schnorr2013fits}. 
+One therefore has to use selection schemes to show only data that is
+fully relevant from the analysis point of view. 
+In such complex execution traces, many hypothesis (and thus filters) 
+can be proposed regarding the expected behavior. 
+Developing a monolithic tool, such as the ones tailored for BSP analysis, that
+anticipates all possible performance problems is thus impractical. Moreover, such tool would be
+quite difficult to maintain and customize. A more flexible solution with
+scripting capability is thus needed.
+
+During the analysis of DAG traces, the
+typical questions that arise 
+are different from those of BSP
+applications. Instead of inspecting whether and why a certain algorithm
+iteration or phase was slowed down, one needs to analyze if the tasks
+were properly scheduled and if sufficient parallelism is available. 
+One also needs to examine whether complex data
+movement techniques, task submission and many internal runtime
+mechanisms can be further improved.
+
+# Use of \ie is wrong when we want to say "for example"
+# Correct way is \eg (Exempli gratia)
+# https://en.wikipedia.org/wiki/List_of_Latin_phrases_(E)#exempli_gratia
+
+A common approach to better understand the application behavior
+is to compare several execution traces, possibly each one with a
+different configuration (\eg scheduling parameter). However, due to the dynamic
+scheduling, this is generally difficult for task-based traces. To draw
+relevant conclusions, one needs to synchronize multiple 
+visualizations and filter the unwanted
+states. Although some support exists in some
+tools\cite{pillet1995paraver,pagano2014framesoc}, they do not offer
+enough customization flexibility for such studies.
+
+The next section details our proposal to visualize task-based application
+traces. It tackles some of the preceding challenges
+with a framework that combines data analytics tools to
+create a flexible environment enabling customized analysis.
+
+# Challenges
+# - dynamic
+# - apparently unstructured (no clear phases, but dependencies to exploit)
+# - heterogeneous platform
+# - many information lead to visualization artifact (bias: more data than pixels on your screen)
+# - engineering and usage:
+#   - hard to maintain and hack (add new functionality)
+#   - scripting capability missing
+# Typical questions:
+# - knowing whether further improvement can be expexted and how
+# - understanding the execution from the application perspective
+# - understanding the difference between two traces
+#   - comparison difficult (except paraver and framesoc but mostly for MPI)
+
+** Task-based Visualization Proposal                              :noexport:
+#+LaTeX: \AL{This section was written by Lucas. It should be merged in the subsequent one}
+\label{sec.proposal}
+
+We describe the design of customized visualization techniques for task
+execution traces obtained from DAG-based HPC applications. The target
+end users of such visualization techniques are the HPC parallel
+application developer as well as the scheduler developer who wants to
+improve the scheduling decisions of the runtime system. Our proposal
+intends to build on space/time views, enriching the DAG execution
+trace representation with application data. For that end, we modify
+the runtime to inject application data, such as iteration indexes,
+loop level, in the traces, enabling a correlation of such data with
+the DAG executed by the runtime system. Although generic enough to be
+applied to any DAG-based runtime system, we implement such
+visualization framework using traces obtained with StarPU. The StarPU
+runtime has several different schedulers and a well-defined API,
+having multiple applications already ported.
+
+We built the framework on top of modern data analytics tools,
+combining PajeNG's pjdump\cite{pajelang}, the R programming language,
+with its ggplot2 library\cite{ggplot2}, org-mode\cite{orgmode}, and
+plotly\cite{plotly} to interactively conduct the analysis with any
+HTML5-enabled browser. The main advantage of such approach is that the
+very low development cost when compared to a traditional and
+monolithic performance visualization tool, and the flexibility offered
+by a high-level scripting language (R) that uses a grammar of graphics
+(ggplot2). Figure\ref{fig:combotools} depicts our combo tools. The
+StarPU-based parallel application generates two files: one with the
+task execution timestamps in the Paje language (paje trace); another
+with the entire DAG, with each task dependencies (task record). The
+paje trace file is converted to a tabular timestamped CSV file using
+pjdump. The CSV file and the task dependency file are read by our R
+scripts written using many libraries, including ggplot2 and dplyr. A
+grammar of graphics is implemented with ggplot2, allowing the
+generation of static graphics such as the ones we have added to this
+paper. By employing the plotly R library, we can generate interactive
+HTML5 graphics using the exact same code.
+
+
+
+Another advantage of using ggplot2 graphics is that we can combine
+multiple traces visualization in a single view (or interactive view in
+HTML), alowing trace comparison. On such cases, we carefully calculate
+and synchronize all axis providing a representation such as the ones
+in Figures\ref{fig:large_2_comparison} and\ref{fig:small_2_comparison}.
+
+** Visualization Methodology
+#+LaTeX: \label{sec.proposal}
+
+# Moved here to avoid paragraph breakup
+# #+BEGIN_QUOTE
+# Visualization doesn't add insight, it multiplies. If you know nothing
+# about your data to start with, visualization won't help.
+#     -- Martin Wattenberg
+# #+END_QUOTE
+
+Visualizing data allows to graphically check many assumptions at once.
+It helps with assumptions that are difficult to formally state
+or for which defining a proper statistical test would require to build
+on even more hypothesis that would also have to be verified.
+This is why it is important to start by listing various hypothesis (or
+expectations) made on the system under study. From such list, a set of
+visualizations can be generated. We propose visualization that are
+therefore designed for the application and scheduler
+developers, assisting them to rapidly identify performance problems
+as well as potential solutions.
+
+The set of hypothesis to check is fairly rich in heterogeneous
+platforms targeted by task-based runtime systems. It is thus important
+to build a visualization framework that allows to
+easily and rapidly *combine various views* and *propose new alternative views
+in an agile way*. Moreover, since dynamic scheduling and machine
+heterogeneity bring a lot of variability, the ideal visualization
+should *exploit* any *potential regularity* coming
+from the *application algorithm*. For example, as we have seen in
+Figure\ref{fig:dag5}, each task can be identified by the loop indexes $i,j,k$.
+Such kind of information is much more useful
+than the internal runtime task identification and should thus be
+provided by the application to the runtime so that it can be traced
+and further exploited during the visualization.
+
+To meet these different design goals, we decided to use the
+workflow shown in Figure\ref{fig:combo}.
+With few modifications on MORSE,
+tracing is extended to tag tasks with loop indexes at the task
+creation.
+StarPU relies on FXT\cite{danjean2005fxt} traces to produce timestamped events in
+the Paje language\cite{pajelang}. A complete DAG is also created with
+task identifiers coherent with the Paje trace. Instead of building a
+complex monolithic tool, we follow the UNIX philosophy and
+script many small tools. Using =pjdump=, the paje trace is converted
+into a Comma-Separated Values (CSV) file that can be
+loaded into =R=. Thanks to the expressiveness and to the rich set of
+statistical libraries of the =R= language, many cleanups, filtering and
+statistic computations can be done with few lines of code. The
+=ggplot= library provides a grammar of graphics and a very high-level
+way of building plots, enabling us to easily produce custom visualizations.
+This environment has enough expressiveness to guarantee
+different but coherent views  (colors,
+scales, etc.).
+
+#+BEGIN_LaTeX
+\begin{figure}[!htb]
+\centering
+\includegraphics[width=\linewidth]{combo.pdf}%
+\caption{Combining data analytics tools to create trace views.}
+\label{fig:combo}
+\end{figure}
+#+END_LaTeX
+
+This approach allows to build static views in a fully
+automatic and very efficient way. Although such visualizations could
+probably be sped up even further by programming everything in C/C++,
+the used libraries are already well optimized and benefit
+from the know-how of data analysts. Furthermore, a combination of
+small scripts is both easier to maintain and adapt to a new necessity
+or to a particular situation than a rigid monolithic visualization
+environment.
+
+The static views (typically basic X11 window or a PDF) of our approach
+have disadvantages when compared to tools described in
+Section\ref{sec.relatedwork}.  Interaction is often crucial
+for the analyst to find what he is looking for. This is why we also
+build on =plotly=, an online analytics tool, that
+enables the quick conversion of ggplots into interactive, online
+graphs usable with a classical web browser.
+Two illustrations in this article are also available in an interactive
+version. We
+strongly believe that putting interaction at the very end together
+with the scripting capabilities in the core of the analysis process is
+the key to carry out the analysis of complex execution traces.
+
+Finally, loading and merging several traces 
+enables faithful comparisons and even produces
+perfectly aligned and coherent views. Since execution traces are
+stochastic in nature, we believe that side by side
+representations are essential to decide whether a phenomenon is
+important/recurrent or it is an unlucky situation and
+can be considered as the execution noise.
+
+** Experimental Validation and Results
+#+LaTeX:\label{sec.usecases} 
+*** Introduction                                                   :ignore:
+
+When dynamically scheduling task-based applications, the kind of question to
+answer is totally different whenever the resulting DAG is large or
+small. Large DAGs are expected to be
+embarrassingly parallel, almost reaching peak
+performance. Since such DAGs have many tasks, one need to use
+macroscopic views and indicators to understand how
+performance can be improved. Small DAGs, on the other hand, have little
+parallelism. Idle time will inevitably be incurred by
+task dependencies. For such executions, microscopic views with fine-grained
+data on task dependencies should rather be used.
+
+We fully analyze two very different Cholesky workloads in the rest of this
+paper: large ($60\times60$ tiles of size $960\times960$) and small
+matrices ($12\times12$ tiles, same size). For each, we
+detail the expected behavior, then propose composite views
+allowing to check these expectations. The views are then exploited
+to compare the three aforementioned StarPU schedulers, enabling us to
+propose potential improvements.
+
+*** Large Workload (Cholesky of $60\times60$ tiles of size $960\times960$)
+**** Expectations
+
+# We detail below the expectations on uniformity, 
+# dependencies, progress, and possible improvements.
+
+#+LaTeX: \noindent
+*Uniformity.* Task duration is expected to depend solely on their
+type (\DGEMM, \DSYRK, \DTRSM or \DPOTRF) and on the type of resource
+(CPU or GPU) on which it is executed. Such assumption should be
+visually verified, highlighting all tasks whose duration is abnormally
+large compared to the others of the same type/resource. We treat these
+tasks as independent outliers, 
+#+Latex: % expecting their space/time location is
+unrelated to other tasks behavior. If not so, it may
+mean that the whole platform has been perturbed at particular moments
+or that some resource differs from the others. A task is
+anomalous if its duration exceeds the sampled third quartile plus
+1.5 times the sampled interquartile range. Although this
+outlier notion is highly debatable and
+context-specific, other definitions could be easily
+incorporated.
+
+#+LaTeX: \noindent
+*Dependency problems*. Large input matrices generate many
+tasks, especially when the application starts. We
+therefore want to monitor the number of ready and submitted tasks. For
+this Cholesky implementation, all tasks are expected to be
+submitted when the application starts.  On scale, the number of task
+dependencies is extremely large. Automatically selecting which ones to
+display is haphazard. If a detailed view becomes necessary, we should
+switch to views described in
+Section\ref{sec.small_matrices}.
+
+  # #+Latex: \LMS{Not sure I understood this item.}
+  # - dependencies in front of idle time (again, arbitrary threshold
+  #   based on aggregated view) because there should not be idle time in
+  #   such cases. 4-5 steps backward for all tasks in front of large
+  #   idle time
+  # - Utiliser l'approche du small et tracer les dependences arriere de
+  #   dgemms pour la figure 3 (pour la version longue)
+
+#+LaTeX: \noindent
+*Progress*. The task graph resulting from dense linear algebra always share a
+common structure (for instance, see Figure\ref{fig:dag5}). In a
+classical semi-sequential execution, the DAG would be executed much
+similarly to a /breadth/-first search. However, it is also
+possible to carry out a /depth/-first traversal, favoring task execution
+on the critical path. Following the pipelining of the sets of tasks
+submitted by each outer loop interation can be sufficient to get an
+overview of how the scheduler is handling the DAG and if it
+corresponds to the analyst's intuition or not.
+
+# (\DGEMM, \DSYRK, \DTRSM, and \DPOTRF) 
+
+#+BEGIN_LaTeX
+\begin{figure*}[!t]
+\vspace{-.5cm}
+\centering
+\includegraphics[width=\linewidth]{full-size-extended-gantt-crop.pdf}\\%
+%\vspace{\baselineskip}
+{\begin{minipage}{.9\linewidth}
+  \caption{Cholesky factorization of a large ($60\times60$ tiles of $960\times960$) matrix
+ with the DMDAS scheduler; 
+    five views are referred as indicated on the right. (a)
+    This Gantt chart is automatically augmented with (from left to
+    right), the critical path bound (CPE) and of the area
+    bound estimations (ABE) and the makespan.
+    The time percentage 
+    in the Idle state per resource is shown on the
+    right. Finally, tasks whose duration is abnormally large compared
+    to the others are highlighted with a darker
+    color. 
+(b)~The plot is composed of  horizontal segments, one per
+     iteration $k$ of the outer loop, indicating during which time
+     interval the tasks of the iteration have been processed.
+(c) depicts how many tasks are finished waiting for dependencies, and thus 
+     ready for execution and (d) how many are
+    submitted and still not executed. (e) compares the actual number of tasks of each type
+    executed on CPUs and GPUs (the bar) with the optimal repartition obtained
+    when computing the ABE (the bullet).}
+    \label{fig:large_2_pinpointing}
+\end{minipage}}\hfill
+%\begin{minipage}{.09\linewidth}
+\bgroup
+\def\arraystretch{0.1}%  1 is the default, change whatever you need
+ $\begin{array}{p{0.3cm}p{0.3cm}}\toprule
+    (a) & \multirow{4}{*}{(e)}\\
+    (b) & \\
+    (c) & \\
+    (d) & \\\bottomrule
+  \end{array}$%\hspace{-.5cm}
+%\end{minipage}
+\egroup
+\vspace{-.5cm}
+\end{figure*}
+#+END_LaTeX
+
+# Note on the CPUs, such large periods of time appear in white and not
+# in yellow, which means that this is not considered as Idle by the
+# scheduler (we will come back on this point later).
+#+LaTeX: \noindent
+*Potential improvements*. Dependencies are expected to be easily handled
+with large workloads. The major issue is the load balancing among
+CPUs and GPUs. Since one knows the average time $w_{i,k}$ needed to
+perform a task of type $k$ on a resource of type $i$ as
+well as the total number $n_k$ of tasks per type, one can consider
+that a fraction $\alpha_{i,k}$ of tasks of type $k$ will be done on resource
+$i$ and that the $\alpha_{i,k}$ should thus verify:
+
+#+BEGIN_LaTeX
+\begin{equation*}
+  \forall i: \sum_k \alpha_{i,k}.n_{i,k}.w_{i,k} \leq T
+\end{equation*}
+#+END_LaTeX
+
+Since such constraints are linear it is possible to compute the
+optimal makespan $T$ and allocation $\alpha_{i,k}$. The $T$ value is called
+the *Area Bound Estimation* (ABE) and is a lower bound for the execution
+time. Another classical lower bound is the *Critical Path Bound
+Estimation* (CPE). It is obtained by assigning each task on its faster
+processing resource and by summing all durations along the DAG. These
+execution time bounds, in particular the ABE when the workload is
+large, are quite useful to estimate how much further improvement can
+be expected. More accurate lower bounds\cite{suraj15} could be used as
+well, in particular for intermediate size workloads. Moreover, an
+ideal task allocation is also computed when ABE is defined. Comparing
+the ideal with the actual allocation may help understanding how
+scheduling could be improved.
+
+#+LaTeX: \noindent
+# *Aggregation and Filtering*. Displaying information on hundreds of
+# thousands of tasks on a small area in a blunt way generally leads to
+# harmful visualization artifacts\cite{schnorr2013fits}. For example, in
+# a classical Gantt chart, visually estimating how much time was spent
+# idle can be quite difficult. This is why it is generally important to
+# filter useless information (e.g., with thresholds configured by the
+# analyst) or to aggregate it in a meaningful and non ambiguous way.
+
+
+**** Composite View for Pinpointing Scheduling Mistakes
+Building on the expectations, we propose a five-area
+composite view shown in  
+Figure\ref{fig:large_2_pinpointing} (each area is detailed in the caption).
+
+
+We see in Figure\ref{fig:large_2_pinpointing}(a) that the
+makespan is 62725ms while the ABE is 59464ms.
+So, one can hope for a 5%
+improvement. The scheduling seems indeed
+inefficient since there are periods (white areas in
+CPUs) when no useful computation is done. These periods correspond to filtered
+states (for clarity) where threads try to actively fetch data. The total idle state (yellow
+areas: a summary in the right of the Gantt) for CPUs is about 1%,
+while for GPUs it ranges from 2 to 6%. This GPU inactivity is 
+likely the main source of potential improvement. From
+(c), it is clear that this idle
+time does not come from a sudden lack of ready
+tasks. Figure\ref{fig:large_2_pinpointing}(d) clearly indicates that
+all tasks have been submitted in the beginning and that task execution
+started immediately after, without waiting for fully unrolling the
+DAG. As suggested in (b),
+DAG traversal is rather depth-first. Many outer loop iterations
+are parallel (the maximum is 30 around 40s), explaining why there are always a sufficient
+number of ready tasks.
+
+Such GPUs starvation is more likely explained either by data
+prefetching problem (some tasks are ready but their input
+data is not yet transferred to GPUs) or possibly by some priority
+problem (the priorities, used by the scheduler to choose which task to
+schedule first when several of them are ready, might be
+inadequate). The first explanation is likely to be the right one
+here. Indeed, most large idle periods on GPUs and
+large periods of times where CPUs are not doing useful computations
+(in white) also coincide with abnormal \DGEMM tasks (in dark green) on
+GPUs. An investigation (such as the one of
+Section\ref{sec.small_matrices}) reveals that, for an
+unknown reason, the GPUs seem to freeze during a task execution inside
+the proprietary CUBLAS \DGEMM kernel, ultimately blocking tasks
+eagerly waiting for GPU data. Understanding why GPUs
+sometimes get stuck  would certainly
+solve the issue but this clearly suggests a weakness of the chosen
+scheduler which assumes that tasks duration have small variability.
+Using *other schedulers may therefore alleviate this*.
+
+The four plots depicted in Figure\ref{fig:large_2_pinpointing}(e) show
+the ideal allocation when calculating the ABE. They show how the GPUs
+have been overused with \DGEMM tasks and under-exploited for \DSYRK
+and \DTRSM tasks. It therefore suggests to *constrain the \DSYRK and \DTRSM
+tasks to run exclusively on GPUs*.
+
+# #+LaTeX: \LMS{There referred problem (see final words on the above paragraph) appear in multiple execution traces, or just in this particular one?}
+
+**** Comparing Scheduling Strategies and Task Constraints
+
+The previous analysis lead us to vary the
+scheduler (DMDA, DMDAS, WS) and to force or not the \DSYRK/\DTRSM allocation on GPUs. Figure\ref{fig:large_2_comparison}
+provides the six-scenario comparison.
+
+#+BEGIN_LaTeX
+\begin{figure*}[!tb]
+\vspace{-.5cm}
+\begin{tabular}{l@{}p{.33\linewidth}@{}p{.33\linewidth}@{}c@{}}
+  & \centering{\textbf{\small DMDA}} & \centering{\textbf{\small DMDAS}} & {\textbf{\small Work Stealing}} \\
+  \rotatebox{90}{\hspace{-.2cm}{
+    {\begin{minipage}[c]{5.1cm}\begin{center}{\textbf{\small  \hspace{1.0cm} Constrained}~\vspace{-.4cm}\newline{\rotatebox{270}{\accolade{\linewidth}}\vspace{-.7cm}}}\end{center}\end{minipage}}\quad%
+    {\begin{minipage}[c]{5.1cm}\begin{center}{\textbf{\small \hspace{0.9cm} Unconstrained}~\vspace{-.4cm}\newline{\rotatebox{270}{\accolade{\linewidth}}\vspace{-.7cm}}}\end{center}\end{minipage}}
+  }} &
+\multicolumn{3}{c}{\includegraphics[width=.965\linewidth]{comparison-3-sched-original-vs-forcing-crop.pdf}}
+\end{tabular}
+\caption{The execution representation of three schedulers (DMDA, DMDAS and Work Stealing), as columns, with unconstrained versus contrained \DSYRK and \DTRSM tasks on GPUs, as rows. Each of the six plots is an instance of the view described in Figure\ref{fig:large_2_pinpointing} (refer to that caption to understand different parts).}
+\label{fig:large_2_comparison}
+\vspace{-.5cm}
+\end{figure*}
+#+END_LaTeX
+
+First of all, it is interesting to see how the three schedulers differ
+in their DAG traversal of the DAG. While the DMDA
+algorithm has a breadth-first traversal (very few iterations of the
+outer loop are active at the same time), the DMDAS has a much more
+depth-first traversal as it takes the priority of the critical
+path into account. The traversal of the Work Stealing (WS) is even
+more depth-first as almost all outer loop iterations are still in
+progress at the end of the execution. Such way of progressing through
+the DAG is typical of WS and somehow favors local data
+accesses even though the algorithm is more dependency myopic than the
+two other ones. 
+
+Second, when constraining the \DSYRK and \DTRSM to run solely on the
+GPUs (the plots on the bottom row of
+Figure\ref{fig:large_2_comparison}), task allocation then
+corresponds to the ideal one. However, if such constraint allows both
+DMDAS and Work Stealing to obtain near optimal executions (within less
+than 2% of the lower bound), this helped only moderately the DMDA
+algorithm. Many synchronized idle phases can be observed and imputed
+to both dependency issues (not enough parallelism is obtained from
+such a strict breadth-first traversal) and particularly slow tasks
+(probably slowed down by simultaneous data transfers). Interestingly,
+very few outlier tasks appear in the DMDAS and WS executions
+although the latter still seems a bit sensitive to this, as inactivity
+periods on CPUs (white areas) still correlate with the occurrence of
+\DGEMM outliers (darker green) on GPUs.
+
+Finally, we stress that such observations are no
+coincidence. We randomly ran similar scenarios ten times and
+although the numbers always slightly differ, the general behavior and
+conclusions are the same. We also highlight that the
+area bound estimations (ABE) can vary significantly between two scenarios
+(e.g., 60s for constrained DMDA vs. 57s for constrained WS),
+which can be initially surprising since these estimates only
+depend on the number of tasks and their per-type average execution time
+on the different resources. The observations can be
+explained by the use of sample execution time mean,
+which may vary a bit. From our investigation this variation is not
+explained by outliers occurrence but rather biased toward
+one or another scheduler. We think this is the consequence of a
+better locality (cache usage) but more complex measurements
+would be needed to fully evaluate this hypothesis.
+
+*** Small Workload (Cholesky of $12\times12$ tiles of size $960\times960$)
+#+LaTeX: \label{sec.small_matrices}
+**** Expectations
+
+#+LaTeX: \noindent
+*Potential improvements*. The area bound (ABE) is
+optimistic for small workloads since it ignores task dependencies. The
+critical path bound (CPE) is much more relevant,
+especially on very small workloads such as this one. Still,
+knowing how tight they are is quite difficult\cite{suraj15}. Thus,
+comparing to the ideal CPU/GPU allocation is meaningless
+and we should focus mainly on filtering task dependencies.
+
+#+LaTeX: \noindent
+*Idle time everywhere*. Having a lot of idle time is expected
+because of dependencies. It is thus imperative to identify crucial
+tasks, highlighting the ``dynamic critical path'', \ie the last tasks
+upon which they depended. Such important tasks may appear either
+because of the DAG structure or because they have been
+particularly delayed.
+
+#+LaTeX: \noindent
+# *Uniformity and Aggregation*. With few tasks, aggregation is not really
+# useful. The uniformity hypothesis still holds and highlighting
+# ``outlier'' tasks can therefore be useful.
+**** Backtrack Dependencies to Pinpoint Scheduling Mistakes
+#+BEGIN_LaTeX
+\begin{figure}[!tb]
+\centering
+\includegraphics[width=\linewidth]{half-size-gantt-dep-outliers-crop.pdf}
+%\vspace{\baselineskip}
+\caption{Detailed view (see \url{http://perf-ev-runtime.gforge.inria.fr/vpa2016/}) of a $12\times12$ Cholesky execution (DMDAS scheduler) with two (red and blue) critical paths.}
+\label{fig:small_2_pinpointing}
+\vspace{-.5cm}
+\end{figure}
+#+END_LaTeX
+
+Since StarPU also exports the DAG, the dependency information can be
+merged into the trace. For Cholesky,
+the \DPOTRF are critical tasks that release many other tasks. It
+seems therefore relevant to track their dependencies. For a given task
+$T_{i}$, it is possible to compute what was the task $T_{i-1}$ on which it
+depends on and that finished the latest, similarly, for $T_{i-1}$ its
+latest predecessor $T_{i-2}$, etc.
+Such backward tracking of dependencies allows to rebuild the
+observed critical path. Given the DAG,
+in an ideal execution one would expect a \DPOTRF to be immediately
+preceded by a \DSYRK, immediately preceded by a
+\DTRSM that would in turn be immediately preceded by the \DPOTRF of the
+previous iteration. Therefore, we compute such filtered backward
+dependencies for each \DPOTRF and merge them together.
+
+This is illustrated on Figure\ref{fig:small_2_pinpointing}. The
+makespan is 730ms while the ABE is 434ms and
+the CPE is 368ms. The bounds may be loose
+but it seems that there is room for improvement. If we start
+from the end of the schedule and go backward in time, we can see a
+dependency path (in blue) that, until timestamp 400ms, fully respects the
+alternation \DPOTRF--\DSYRK--\DTRSM. At the very end,
+all tasks execute right one
+after the other, which is optimal. The first ``mistake'' appears in time
+600ms where the \DSYRK could have been executed a little earlier. Slightly
+before, some \DTRSM are not executed right after their \DPOTRF maybe
+because of data transfer or more likely because of a wrong
+priority. This critical path does not merge
+with the one obtained for the \DPOTRF of the first iterations. Now, when
+looking at the other (red) dependency path, we can see many times
+that the tasks are scheduled as soon as possible as if there was some *priority
+problem, which could possibly be solved with another scheduler*.
+
+We identify another problem with the blue dependency path. At the end,
+ tasks are executed on
+the appropriate resource (\DPOTRF on CPUs, and \DSYRK and \DTRSM on
+GPUs). However, slightly before time 600ms, critical \DSYRK tasks start
+running on the CPUs, slowing the progression.
+ Likewise, slightly before time 400ms, critical \DTRSM tasks are
+run on CPUs whereas they are known to be very slow on such
+resources. It seems that this scheduler makes a bad decision and that
+*constraining \DTRSM and \DSYRK to be executed on GPUs may reduce the
+total makespan*.
+#+LaTeX: %
+Although the potential solutions (fix priority, constraining some
+tasks to GPUs) suggested by this analysis are the same as in the previous use case, the
+underlying reasons are fundamentally different.
+
+**** Comparing Scheduling Strategies and Task Constraints
+
+Based on the previous analysis, we vary again the three schedulers and forcing \DSYRK/\DTRSM tasks
+on GPUs. Figure\ref{fig:small_2_comparison} compares the six resulting
+combinations for this workload.
+
+#+BEGIN_LaTeX
+\begin{figure*}[!tb]
+\vspace{-.5cm}
+\begin{tabular}{l@{}p{.33\linewidth}@{}p{.33\linewidth}@{}c@{}}
+  & \centering\textbf{\small DMDA} & \centering\textbf{\small DMDAS} & \textbf{\small Work Stealing} \\
+  \rotatebox{90}{\hspace{-.1cm}{
+    {\begin{minipage}[c]{2.8cm}\begin{center}{\textbf{\small ~~Constrained}\newline~\vspace{-.8cm}\newline{\rotatebox{270}{\accolade{\linewidth}}\vspace{-.7cm}}}\end{center}\end{minipage}}\quad%
+    {\begin{minipage}[c]{2.8cm}\begin{center}{\textbf{\small Unconstrained}\newline~\vspace{-.8cm}\newline{\rotatebox{270}{\accolade{\linewidth}}\vspace{-.7cm}}}\end{center}\end{minipage}}
+  }} &
+\multicolumn{3}{c}{\includegraphics[width=.96\linewidth]{comparison-original-forcing-trsm-syrk-on-gpus-crop.pdf}}
+\end{tabular}
+\caption{The execution representation (interactive version at \url{http://perf-ev-runtime.gforge.inria.fr/vpa2016/}) of three schedulers (DMDA, DMDAS and Work Stealing), as columns,
+              with unconstrained versus constrained \DSYRK and \DTRSM tasks on GPUs, as rows, for a
+              $12\times12$ tiled Cholesky decomposition. Each of the six plots is an instance of the view described in Figure\ref{fig:small_2_pinpointing}.}
+\label{fig:small_2_comparison}
+\vspace{-.5cm}
+\end{figure*}
+#+END_LaTeX
+
+By taking a closer look at the unconstrained top row of
+Figure\ref{fig:small_2_comparison}, we can observe that the behavior
+demonstrated by the DMDA and DMDAS schedulers are not so
+different. They both have similar runtime, two unmerged critical paths
+on which priority and critical task allocation problems can be
+identified. WS also demonstrates a very bad allocation, which is not
+surprising because it does not take into account the heterogeneity of
+the platform. There are three dynamic critical paths in the WS scheduler,
+with many \DTRSM and \DSYRK running on CPUs. When constraining these two
+task types to execute only on GPUs (the bottom row of
+Figure\ref{fig:small_2_comparison}), we observe that such restriction
+does not really help for the DMDA and DMDAS schedulers. Tasks on the
+critical path are no longer an issue, but both schedulers still have
+priority problems. The behavior demonstrated by DMDA seems easier to
+understand: we see some typical list scheduling behavior with critical
+\DPOTRF being delayed because CPUs are used for not so critical
+\DGEMMs. If one could run these tasks earlier, it appears that the whole
+makespan would be greatly improved.
+
+Surprisingly,
+Work Stealing strongly benefits from the imposed restriction and now
+favorably compares against DMDA and DMDAS. It is also interesting to note that WS
+manages to keep all CPUs busy from the very beginning unlike the other
+two schedulers. However, GPUs are not fully exploited, in particular
+at the end where they should be used to accelerate the \DGEMMs like the
+DMDA and DMDAS strategy do. If there was a way to prevent \DGEMM task
+execution on CPU after time 350ms, we would probably get the best of
+the two scheduling strategies and be much closer to the optimal
+execution time.
+
+# Analysis:
+# - Unconstrained:
+#   - DMDA and DMDAS are not so different. They have similar run time,
+#     two unmerged critical paths on which priority problems and
+#     allocation of critical task problems can be identified.
+#   - WS is very bad, which is not surprising. Three critical paths,
+#     many \DTRSM and \DSYRK run on CPUs
+# - Constrained:
+#   - It does not really help for DMDA and DMDAS. No more critical task
+#     allocation problem but now only priority problems that neither one
+#     nor the other correctly addresses. DMDA seems easier to
+#     understand. One can see some typical list scheduling behavior with
+#     critical \DPOTRF being delayed because CPUs are used for not so
+#     critical \DGEMMs. If one could run these tasks earlier it feels
+#     like the whole makespan would be greatly improved.
+#   - Surprisingly, Work Stealing strongly benefits from this and now
+#     favorably compares with DMDA and DMDAS that strongly try to
+#     exploit the DAG structure. It is interesting to see that it
+#     manages to have the all the CPUs busy from the very beginning
+#     unlike the other ones. However, the GPUs are now underexploited,
+#     in particular in the end where they should be used to accelerate
+#     the \DGEMMs (like the DMDA and DMDAS strategy). If one could
+#     prevent the \DGEMM to run on the CPU after time 350, one would
+#     probably get the best of the two scheduling strategies and be very
+#     close to the optimal.
+
+
+# Pick the right scenarios (generally the best possible execution
+# with a given scheduler config)
+# - different scheduling behaviors:
+#   - unstructured execution (ws)
+#   - critical tasks not on the GPU
+#   - good cp at the end
+#   - good cp at the beginning
+
+# - For the best one after having forced trsm/syrk on GPUs
+#   - Two critical paths, the one at the end is perfect (without
+#     priority problems).
+#   - The first critical path (red), beaucoup trop etiré
+#     - priority problems (the same that appear before forcing), for example:
+#       - first dtrsm after the second dpotrf (the diagonal upward red line) CPU11 \to CUDA2
+#     - classical list scheduling problem
+#       - third dpotrf, it has to be executed in the CPU; when it
+#         becomes ready, all CPUs are occupied (by dgemms) \to that's
+#         because list scheduling behavior (whenever a resource is free,
+#         if a task is ready, it allocates the task to that resource).
+#       - The only solution would be to sacrifice one CPU to be only
+#         available to dpotrf, giving higher priority to their
+#         executions (small modification in the scheduler could solve
+#         this issue)
+#     - _rester dans le problème de priorité_ (pas dire plus que ça)
+
+** Conclusion
+\label{sec.conclusion}
+
+This article presents how an agile
+scripting framework allows to create faithful and enlightening trace views for the
+performance analysis of task-based HPC applications running on 
+heterogeneous platforms. The framework follows the UNIX philosophy and builds upon many small
+existing tools (pjdump, ggplot2, plotly)
+glued together with the R programming language. 
+Putting interaction at the very end together
+with scripting capabilities in the core of the analysis process is
+the key to a flexible design.
+We have shown how applying this
+framework in the analysis of large and small scale scenarios based
+on the MORSE/StarPU implementation of the Cholesky factorization
+allows to identify and address several non trivial scheduling problems. 
+# The obtained results have enabled us to fine tune the application,
+# e.g., by constraining the execution of \DTRSM and \DSYRK tasks to GPUs,
+# and to identify priority problems. These priority issues can be
+# solved by improving the priority definition in the Chameleon code. 
+#+LaTeX: %
+#+LaTeX: %
+As future work, we intend to improve the interactive views by using
+temporal aggregation to reduce trace size and improve the integration
+between performance visualization and runtime debugging. We also
+intend to extend this approach to analyze the behavior of irregular
+task-based workloads\cite{agullo2013multifrontal}.
+  
+# Although most of this investigation
+# was conducted using programmable but static views, all of them can be
+# very easily inspected through a web-based interactive approach.
+
+** Acknowledgments                                                  :ignore:
+
+#+LATEX:\subsubsection*{Acknowledgements}
+
+This research has received funding from the CAPES/Cofecub project
+764-13, the EU/H2020 and the MCTI/RNP-Brazil under the
+HPC4E Project with the grant 689772, the FAPERGS/Inria ExaSE
+project, the CNPq 447311/2014-0, and the CNRS/LICIA
+Intl. Lab. We also thank Emmanuel Agullo, Lionel Eyraud-Dubois and
+Suraj Kumar for their help in better understanding the traces
+and the visualization requirements of the runtime scheduler
+developers.
+
+** References                                                        :ignore:
+
+#+LATEX: \bibliographystyle{IEEEtran}
+#+LATEX: \bibliography{refs}
+
+* Bib file is here                                                 :noexport:
+
+Tangle this file with C-c C-v t
+
+#+begin_src bib :tangle refs.bib
+
+% put here your bibliography files
+
+
+@misc{Vite2009,
+  title = {Visual trace explorer (ViTE)},
+  author = {Coulomb, Kevin and Faverge, Mathieu and Jazeix, Johnny and Lagrasse, Olivier and Marcoueille, Jule and Noisette, Pascal and Redondy, Arthur and Vuchener, Clément}, 
+}
+
+@ARTICLE{heft2992topcuoglu, 
+author={H. Topcuoglu and S. Hariri and Min-You Wu}, 
+journal={IEEE Trans. Par. Distr. Syst.}, 
+title={Performance-effective and low-complexity task scheduling for heterogeneous computing}, 
+year={2002}, 
+volume={13}, 
+number={3}, 
+pages={260-274}, 
+keywords={directed graphs;processor scheduling;workstation clusters;Critical-Path-on-a-Processor algorithm;DAG scheduling;Heterogeneous Earliest-Finish-Time algorithm;application scheduling problem;heterogeneous computing environments;list scheduling;parametric graph generator;scheduling costs;task graphs;time metrics;weighted directed acyclic graphs;Processor scheduling}, 
+doi={10.1109/71.993206}, 
+ISSN={1045-9219}, }
+
+@inproceedings{huynh2015dagviz,
+ author = {Huynh, An and Thain, Douglas and Peric\`{a}s, Miquel and Taura, Kenjiro},
+ title = {DAGViz: A DAG Visualization Tool for Analyzing Task-parallel Program Traces},
+ booktitle = {Proceedings of the 2nd Workshop on Visual Performance Analysis},
+ series = {VPA '15},
+ year = {2015},
+ isbn = {978-1-4503-4013-7},
+ location = {Austin, Texas},
+ pages = {3:1--3:8},
+ articleno = {3},
+ numpages = {8},
+ doi = {10.1145/2835238.2835241},
+ acmid = {2835241},
+ publisher = {ACM},
+ address = {New York, NY, USA},
+ keywords = {DAG visualization, performance analysis, profiler, task parallel, tracer},
+} 
+
+@inproceedings{kurzak2015taskdep,
+ author = {Haugen, Blake and Richmond, Stephen and Kurzak, Jakub and Steed, Chad A. and Dongarra, Jack},
+ title = {Visualizing Execution Traces with Task Dependencies},
+ booktitle = {Proceedings of the 2nd Workshop on Visual Performance Analysis},
+ series = {VPA '15},
+ year = {2015},
+ isbn = {978-1-4503-4013-7},
+ location = {Austin, Texas},
+ pages = {2:1--2:8},
+ articleno = {2},
+ numpages = {8},
+ doi = {10.1145/2835238.2835240},
+ acmid = {2835240},
+ publisher = {ACM},
+ address = {New York, NY, USA},
+ keywords = {DAG, data movement, execution trace, task-based scheduling},
+} 
+
+
+@inproceedings{pillet1995paraver,
+  title={Paraver: A tool to visualize and analyze parallel code},
+  author={Pillet, Vincent and Labarta, Jes{\'u}s and Cortes, Toni and Girona, Sergi},
+  booktitle={Proceedings of WoTUG-18: Transputer and occam Developments},
+  volume={44},
+  pages={17--31},
+  year={1995}
+}
+
+@incollection{knupfer2008vampir,
+  title={The Vampir performance analysis tool-set},
+  author={Kn{\"u}pfer, Andreas and Brunst, Holger and Doleschal, Jens and Jurenz, Matthias and Lieber, Matthias and Mickler, Holger and M{\"u}ller, Matthias S and Nagel, Wolfgang E},
+  booktitle={Tools for High Perf. Comp.},
+  pages={139--155},
+  year={2008},
+  publisher={Springer}
+}
+
+@techreport{pagano2014framesoc,
+  TITLE = {{FrameSoC Workbench: Facilitating Trace Analysis through a Consistent User Interface}},
+  AUTHOR = {Pagano, Generoso and Marangozova-Martin, Vania},
+  TYPE = {Technical Report},
+  NUMBER = {RT-0447},
+  PAGES = {26},
+  INSTITUTION = {{Inria}},
+  YEAR = {2014},
+  MONTH = Apr,
+  KEYWORDS = {software design ; Execution traces ; trace management ; infrastructure ; data representation ; user interface ; user interaction ; ergonomics ; publish-subscribe ; software design.},
+  PDF = {https://hal.inria.fr/hal-00977887/file/RT-447.pdf},
+  HAL_ID = {hal-00977887},
+  HAL_VERSION = {v1},
+}
+
+@article{augonnet2011starpu,
+  title={StarPU: a unified platform for task scheduling on heterogeneous multicore architectures},
+  author={Augonnet, C{\'e}dric and Thibault, Samuel and Namyst, Raymond and Wacrenier, Pierre-Andr{\'e}},
+  journal={Conc. and Comp.: Pract. and Exp.},
+  volume={23},
+  number={2},
+  year={2011},
+  publisher={Wiley Online Library}
+}
+
+@inproceedings{augonnet2012starpumpi,
+ author = {Augonnet, C{\'e}dric and Aumage, Olivier and Furmento, Nathalie and Namyst, Raymond and Thibault, Samuel},
+ title = {{StarPU-MPI}: Task Programming over Clusters of Machines Enhanced with Accelerators},
+ booktitle = {Proceedings of the 19th European Conference on Recent Advances in the Message Passing Interface},
+ series = {EuroMPI'12},
+ year = {2012},
+ isbn = {978-3-642-33517-4},
+ location = {Vienna, Austria},
+ pages = {298--299},
+ numpages = {2},
+ doi = {10.1007/978-3-642-33518-1_40},
+ acmid = {2404084},
+ publisher = {Springer-Verlag},
+ address = {Berlin, Heidelberg},
+ keywords = {GPUs, MPI, accelerators, task-based model},
+} 
+
+@inproceedings{ohshima2013FEMstarpu,
+  title = {{Implementation of FEM Application on GPU with StarPU}},
+  author = {Ohshima, Satoshi and Katagiri, Satoshi and Nakajima, Kengo and Thibault, Samuel and Namyst, Raymond},
+  booktitle = {SIAM Conference on Computational Science and Engineering 2013}},
+  address = {Boston, United States},
+  organization = {{SIAM}},
+  year = {2013},
+}
+
+@inproceedings{martinez2015towards,
+  TITLE = {{Towards seismic wave modeling on heterogeneous many-core architectures using task-based runtime system}},
+  AUTHOR = {Mart{\'i}nez, V{\'i}ctor and Mich{\'e}a, David and Dupros, Fabrice and Aumage, Olivier and Thibault, Samuel and Aochi, Hideo and Navaux, Philippe Olivier Alexandre},
+  BOOKTITLE = {{Intl. Symp. on Comp. Arch. and High Perf. Comp. (SBAC-PAD)}},
+  PUBLISHER = {{IEEE}},
+  YEAR = {2015},
+  MONTH = Oct,
+}
+
+@INPROCEEDINGS{agullo2012morse, 
+author={E. Agullo and G. Bosilca and B. Bramas and C. Castagnede and O. Coulaud and E. Darve and J. Dongarra and M. Faverge and N. Furmento and L. Giraud and X. Lacoste and J. Langou and H. Ltaief and M. Messner and R. Namyst and P. Ramet and T. Takahashi and S. Thibault and S. Tomov and I. Yamazaki}, 
+booktitle={High Performance Computing, Networking, Storage and Analysis (SCC), 2012 SC Companion:}, 
+title={Poster: Matrices over Runtime Systems at Exascale}, 
+year={2012}, 
+pages={1332-1332}, 
+keywords={graphics processing units;linear algebra;mathematics computing;multiprocessing systems;software engineering;GPU accelerator;MORSE project;Magma solver;Pastix solver;ScalFMM solver;abstraction level;graphics processing unit;large-scale multicore system;linear algebra method;matrices over runtime systems at exascale;software design;GPU;HPC;Magma;PaStiX;Runtime System;ScalFMM;multicore}, 
+doi={10.1109/SC.Companion.2012.168}, 
+month={Nov},}
+
+@techreport{agullo2016conjugate,
+  TITLE = {{Task-based Conjugate Gradient: from multi-GPU towards heterogeneous architectures}},
+  AUTHOR = {Agullo, E and Giraud, L and Guermouche, A and Nakov, S and Roman, Jean},
+  TYPE = {Research Report},
+  NUMBER = {8912},
+  INSTITUTION = {{Inria Bordeaux}},
+  YEAR = {2016},
+  MONTH = May,
+  KEYWORDS = {High Performance Computing (HPC) ;  multi-GPUs ;  heterogeneous architectures ;  task-based model ;  runtime system ;  sparse linear systems ;  Conjugate Gradient.},
+  PDF = {https://hal.inria.fr/hal-01316982/file/RR-8912.pdf},
+  HAL_ID = {hal-01316982},
+  HAL_VERSION = {v1},
+}
+
+@inproceedings{lacoste2014sparse,
+  TITLE = {{Taking advantage of hybrid systems for sparse direct solvers via task-based runtimes}},
+  AUTHOR = {Lacoste, Xavier and Faverge, Mathieu and Ramet, Pierre and Thibault, Samuel and Bosilca, George},
+  BOOKTITLE = {{HCW'2014 workshop of IPDPS}},
+  HAL_LOCAL_REFERENCE = {RR-8446},
+  PUBLISHER = {{IEEE}},
+  PAGES = {29-38},
+  YEAR = {2014},
+  DOI = {10.1109/IPDPSW.2014.9},
+  KEYWORDS = {Sparse linear solver ; DAG based runtime ; multicore ; GPU},
+  PDF = {https://hal.inria.fr/hal-00987094/file/sparsegpus.pdf},
+  HAL_ID = {hal-00987094},
+  HAL_VERSION = {v1},
+}
+
+@article{agullo2009magma,
+  author={Emmanuel Agullo and Jim Demmel and Jack Dongarra and Bilel Hadri and Jakub Kurzak and Julien Langou and Hatem Ltaief and Piotr
+Luszczek and Stanimire Tomov},
+  title={Numerical linear algebra on emerging architectures: The PLASMA and MAGMA projects},
+  journal={Journal of Physics: Conference Series},
+  volume={180},
+  number={1},
+  year={2009},
+}
+
+@article{duran2011ompss,
+  title={Ompss: a proposal for programming heterogeneous multi-core architectures},
+  author={Duran, Alejandro and Ayguad{\'e}, Eduard and Badia, Rosa M and Labarta, Jes{\'u}s and Martinell, Luis and Martorell, Xavier and Planas, Judit},
+  journal={Par. Proc. Letters},
+  volume={21},
+  number={02},
+  year={2011},
+  publisher={World Scientific}
+}
+
+@article{bosilca2012parsec,
+title = "DAGuE: A generic distributed \{DAG\} engine for High Performance Computing ",
+journal = "Parallel Computing ",
+volume = "38",
+number = "1–2",
+pages = "37 - 51",
+year = "2012",
+note = "Extensions for Next-Generation Parallel Programming Models ",
+issn = "0167-8191",
+author = "George Bosilca and Aurelien Bouteiller and Anthony Danalis and Thomas Herault and Pierre Lemarinier and Jack Dongarra",
+keywords = "HPC",
+keywords = "Micro-task DAG",
+keywords = "Heterogeneous architectures",
+keywords = "Architecture aware scheduling ",
+abstract = "The frenetic development of the current architectures places a strain on the current state-of-the-art programming environments. Harnessing the full potential of such architectures is a tremendous task for the whole scientific computing community. We present \{DAGuE\} a generic framework for architecture aware scheduling and management of micro-tasks on distributed many-core heterogeneous architectures. Applications we consider can be expressed as a Direct Acyclic Graph of tasks with labeled edges designating data dependencies. \{DAGs\} are represented in a compact, problem-size independent format that can be queried on-demand to discover data dependencies, in a totally distributed fashion. \{DAGuE\} assigns computation threads to the cores, overlaps communications and computations and uses a dynamic, fully-distributed scheduler based on cache awareness, data-locality and task priority. We demonstrate the efficiency of our approach, using several micro-benchmarks to analyze the performance of different components of the framework, and a linear algebra factorization as a use case. "
+}
+
+@inproceedings{suraj15,
+  TITLE = {{Bridging the Gap between Performance and Bounds of Cholesky Factorization on Heterogeneous Platforms}},
+  AUTHOR = {Agullo, Emmanuel and Beaumont, Olivier and Eyraud-Dubois, Lionel and Herrmann, Julien and Kumar, Suraj and Marchal, Loris and Thibault, Samuel},
+  BOOKTITLE = {{Heterogeneity in Computing Workshop 2015}},
+  ADDRESS = {Hyderabad, India},
+  YEAR = {2015},
+  KEYWORDS = {Simulation ; Dynamic Schedulers ; Heterogeneous Resources ; Scheduling ; Resource Allocation ; Cholesky Factorization ; starpu-simgrid ; Dense Linear Algebra},
+  PDF = {https://hal.inria.fr/hal-01120507/file/Camera_ready.pdf},
+  HAL_ID = {hal-01120507},
+  HAL_VERSION = {v1},
+}
+
+@article {Graham66,
+author = {Graham, R. L.},
+title = {Bounds for Certain Multiprocessing Anomalies},
+journal = {Bell System Technical Journal},
+volume = {45},
+number = {9},
+publisher = {Blackwell Publishing Ltd},
+issn = {1538-7305},
+doi = {10.1002/j.1538-7305.1966.tb01709.x},
+pages = {1563--1581},
+year = {1966},
+}
+
+@article{orgmode,
+  author =	"Eric Schulte and Dan Davison and Thomas Dye and Carsten Dominik",
+  title =	"A Multi-Language Computing Environment for Literate Programming and Reproducible Research",
+  journal =	"J. of Stat. Soft.",
+  volume =	"46",
+  number =	"3",
+  day =  	"25",
+  year = 	"2012",
+  CODEN =	"JSSOBK",
+  ISSN = 	"1548-7660",
+  bibdate =	"2011-10-03",
+  accepted =	"2011-10-03",
+  acknowledgement = "",
+  submitted =	"2010-12-22",
+}
+
+@TECHREPORT{pajelang,
+  title = {The {Paje} trace file format},
+  author = {Lucas Mello Schnorr and Mathieu Faverge and François Trahay and Benhur de Oliveira Stein and Jacques Chassin de Kergommeaux},
+  institution = {UFRGS},
+  year = 2016,
+  url = {http://github.com/schnorr/pajeng/},
+}
+
+@book{gropp1999using,
+  title={Using MPI-2: Advanced features of the message-passing interface},
+  author={Gropp, William and Lusk, Ewing and Thakur, Rajeev},
+  year={1999},
+  publisher={MIT press}
+}
+
+@techreport{agulloFMM,
+  TITLE = {{Task-based FMM for heterogeneous architectures}},
+  AUTHOR = {Agullo, Emmanuel and Bramas, B{\'e}renger and Coulaud, Olivier and Darve, Eric and Messner, Matthias and Takahashi, Toru},
+  NUMBER = {RR-8513},
+  PAGES = {29},
+  INSTITUTION = {{INRIA}},
+  YEAR = {2014},
+  MONTH = Apr,
+  KEYWORDS = {pipeline ; Fast multipole methods ; graphics processing unit ; heterogeneous architectures ; runtime system ; scheduling ; pipeline.},
+  PDF = {https://hal.inria.fr/hal-00974674/file/RR-8513.pdf},
+  HAL_ID = {hal-00974674},
+  HAL_VERSION = {v1},
+}
+
+@misc{pajeng,
+  title = {{PajeNG}},
+  author = {Lucas Mello Schnorr}, 
+  year = 2014,
+  note = {\url{http://github.com/schnorr/pajeng}},
+}
+
+@inproceedings{danjean2005fxt,
+  title={An efficient multi-level trace toolkit for multi-threaded applications},
+  author={Danjean, Vincent and Namyst, Raymond and Wacrenier, Pierre-Andr{\'e}},
+  booktitle={European Conference on Parallel Processing},
+  pages={166--175},
+  year={2005},
+  organization={Springer}
+}
+
+@incollection{schnorr2013fits,
+  title={Visualizing More Performance Data Than What Fits on Your Screen},
+  author={Schnorr, Lucas M and Legrand, Arnaud},
+  booktitle={Tools for High Performance Computing 2012},
+  pages={149--162},
+  year={2013},
+  publisher={Springer}
+}
+
+@inproceedings{agullo2013multifrontal,
+  title={Multifrontal {QR} factorization for multicore architectures over runtime systems},
+  author={Agullo, Emmanuel and Buttari, Alfredo and Guermouche, Abdou and Lopez, Florent},
+  booktitle={European Conf. on Parallel Processing},
+  pages={521--532},
+  year={2013},
+  organization={Springer}
+}
+#+end_src
