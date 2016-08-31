@@ -970,8 +970,8 @@ extended_gantt_phases_est <- function(df, xmaxrange=NA){
 #+name: barganttestimation
 #+begin_src R :results output :session R3  :var fdep=makespanestimation :noexport:
 bar_gantt_estimation <- function(dt){
-    ncpu  <- nlevels(droplevels(df[grepl("CPU", ResourceId)]$ResourceId))
-    ncuda <- nlevels(droplevels(df[grepl("CUDA", ResourceId)]$ResourceId))
+    ncpu  <- nlevels(droplevels(dt[grepl("CPU", ResourceId)]$ResourceId))
+    ncuda <- nlevels(droplevels(dt[grepl("CUDA", ResourceId)]$ResourceId))
 
     tmpEstimation <- rbindlist(
         lapply(levels(dt$Sched),
