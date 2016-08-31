@@ -970,8 +970,8 @@ extended_gantt_phases_est <- function(df, xmaxrange=NA){
 #+name: barganttestimation
 #+begin_src R :results output :session R3  :var fdep=makespanestimation :noexport:
 bar_gantt_estimation <- function(dt){
-    ncpu  <- nlevels(droplevels(df[grepl("CPU", ResourceId)]$ResourceId))
-    ncuda <- nlevels(droplevels(df[grepl("CUDA", ResourceId)]$ResourceId))
+    ncpu  <- nlevels(droplevels(dt[grepl("CPU", ResourceId)]$ResourceId))
+    ncuda <- nlevels(droplevels(dt[grepl("CUDA", ResourceId)]$ResourceId))
 
     tmpEstimation <- rbindlist(
         lapply(levels(dt$Sched),
@@ -1466,9 +1466,10 @@ echo "dag-5x5.pdf"
 
 ** Combo 
 Convert svg to pdf
-#+name: combo
-#+begin_src sh :results output :exports both
+#+name: combopdf
+#+begin_src sh :results value file :noexport:
 inkscape combo.svg --export-pdf=combo.pdf
+echo "combo.pdf"
 #+end_src
 ** Generate pdf pictures
 Execute this code (ctrl+c ctrl+c) to generate all the figures used in the paper
@@ -1507,6 +1508,7 @@ print(sprintf("Figure 6 (pdf version): %s", gdep4))
 * Reproducing this paper                                           :noexport: 
 1) Tangle this file (C-c C-v t)
 2) Execute the following lines (C-c C-c)
+#+call: combopdf() :results output silent
 #+call: croppdfs() :results output silent
 #+call: ieeetran() :results output silent
 4) Export this file to latex (C-c C-e l l)
