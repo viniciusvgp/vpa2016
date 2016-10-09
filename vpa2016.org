@@ -1317,7 +1317,7 @@ dtDep12tsgpu <- readMultipleTasksRec(rawDir12tsgpu, "*.rec.csv")
 *** Paper Pictures
 **** 1B - Half size gantt with dependencies and outliers (half width)
 #+name: small1
-#+begin_src R :results output graphics :file half-size-gantt-dep-outliers.pdf  :width 9.4 :height 6 :session R3 :var fdep=ganttpotrfdepoutliers :noexport:
+#+begin_src R :results output graphics :file half-size-gantt-dep-outliers.pdf  :width 9.4 :height 5.5 :session R3 :var fdep=ganttpotrfdepoutliers :noexport:
   MinX <- 25 # avoid white space before first object
   MaxX <- max(dtAll12[r=="2" & Sched=="dmdas" ]$End)
   gantt_potrfdepoutliers(dtAll12[r=="2" & Sched=="dmdas" ], dtDep12[r=="2" & Sched=="dmdas" ], 3, idlePercentage=FALSE) + scale_x_continuous("Time [ms]") +
@@ -1484,22 +1484,14 @@ print(sprintf("Figure 5 (pdf version): %s", gdep3))
 print(sprintf("Figure 6 (pdf version): %s", gdep4))
 #+end_src
 
-#+RESULTS:
-: [1] "Figure 3 (pdf version): half-size-gantt-dep-outliers.pdf"
-: [1] "Figure 4 (interactively html version): half-size-gantt-dep-outliers.html\n"
-: [1] "Figure 3 (pdf version): comparison-original-forcing-trsm-syrk-on-gpus.pdf"
-: [1] "Figure 4 (interactively html version): comparison-original-forcing-trsm-syrk-on-gpus.html\n"
-: [1] "Figure 1 (pdf version): dag-5x5.pdf"
-
-
 #+name: croppdfs
 #+begin_src sh :results output  :var dep=generatepictures :var gdep=pdfcrop(file="./half-size-gantt-dep-outliers.pdf") :var gdep2=pdfcrop(file="./comparison-original-forcing-trsm-syrk-on-gpus.pdf") :var gdep3=pdfcrop(file="./full-size-extended-gantt.pdf") :var gdep4=pdfcrop(file="./comparison-3-sched-original-vs-forcing.pdf")  :var gdep5=pdfcrop(file="./dag-5x5.pdf") :var gdep6=pdfcrop(file="./combo.pdf") :noexport:
-   print(sprintf("Figure 1 (cropped pdf version): %s", gdep5))
-   print(sprintf("Figure 2 (cropped pdf version): %s", gdep6))
-   print(sprintf("Figure 3 (cropped pdf version): %s", gdep))
-   print(sprintf("Figure 4 (cropped pdf version): %s", gdep2))
-   print(sprintf("Figure 5 (cropped pdf version): %s", gdep3))
-   print(sprintf("Figure 6 (cropped pdf version): %s", gdep4))
+   printf "Figure 1 (cropped pdf version): %s" gdep5
+   printf "Figure 2 (cropped pdf version): %s" gdep6
+   printf "Figure 3 (cropped pdf version): %s" gdep
+   printf "Figure 4 (cropped pdf version): %s" gdep2
+   printf "Figure 5 (cropped pdf version): %s" gdep3
+   printf "Figure 6 (cropped pdf version): %s" gdep4
 #+end_src
 
 #+RESULTS:
@@ -1521,10 +1513,26 @@ print(sprintf("Figure 6 (pdf version): %s", gdep4))
    pdflatex vpa2016
    pdflatex vpa2016
 #+end_src
+5) Open the pdf file
+
+** Note:
+These commands were tested with the following emacs and org-mode
+versions. Newer or older versions might be incompatible with the code.
+*** Emacs version
+#+begin_src emacs-lisp :eval no
+emacs-version
+#+end_src
 
 #+RESULTS:
+: 24.5.1
 
+*** Org version
+#+begin_src emacs-lisp :eval no
+org-version
+#+end_src
 
+#+RESULTS:
+: 8.3.3
 
 * IEEETran configuration for org export + ignore tag (Start Here)  :noexport:
 #+name: ieeetran
@@ -1637,44 +1645,45 @@ critical path issues.
 
 ** Introduction
 
-To fulfill the ever-growing need for computation power of High
-Performance Computing (HPC) applications, it has become common to rely on
+To fulfill the ever-growing need for computation power of High-Performance Computing (HPC) applications, it has become common to rely on
 hybrid nodes, composed of multi-core processors (CPUs) with multiple
 accelerators (GPUs). However, due to the heterogeneity and 
 complexity of such machines, achieving portable and scalable
 performance has become extremely challenging. A possible solution,
-increasingly used by the community, is to program application at a
-high level, independently of the hardware architecture, as a Directed
-Acyclic Graph (DAG) of tasks. It is then the responsibility of,
+increasingly used by the community, is to program the application at a
+high level,
+ independently of the hardware architecture, as a Directed
+Acyclic Graph (DAG) of tasks. It is then the responsibility of
 another software layer, called the runtime, to dynamically schedule 
 the resulting tasks on the different computing resources taking into
 account the possible speed heterogeneity and variability as well as to
 automatically take care of data movements between resources. 
-This allows to remove artificial synchronizations from the
+This allows removing artificial synchronizations from the
 application code, implementing complex scheduling and data movement
 algorithms (such as HEFT\cite{heft2992topcuoglu}) that would be hard
 to manually incorporate in the application. Thanks to dynamic decisions,
 the irregular behavior of applications and resources is absorbed and exploited by
-the scheduler during execution, effectively balancing load among
+the scheduler during execution, effectively balancing the load among
 computing resources.
 
 Task-based executions on hybrid platforms are
 inherently stochastic. Task mapping, for instance, can drastically
 change from one execution to another. From the performance analysis
-perspective, the nature of such dynamic and opportunistic execution
-schemes makes classical performance analysis totally ineffective. 
+perspective, the nature of such opportunistic execution
+schemes makes classical performance analysis, which expects
+regularity and highlights heterogeneity, invariably ineffective. 
 At the same time, application and runtime developers seek to
 understand the attained performance to improve the application
 design and scheduling decisions. This investigation is challenging
 because it is hard to compare many traces when
-parameters that affect scheduling decisions and task
-generation are changed.
+parameters affecting task
+creation and scheduling change.
 
-In this article, we explain how we designed a tool that
+In this article, we explain how we designed a framework that
 enables an easy and faithful identification of
 subtle scheduling problems that would otherwise go unnoticed
 and misunderstood with classical trace visualization
-approaches. We built the framework@@latex: \footnote{Code available at
+approaches. We built the framework@@latex:\setlength{\skip\footins}{0.3cm}\footnote{Code available at
 \url{http://perf-ev-runtime.gforge.inria.fr/vpa2016/}}@@ on top of modern data analytics
 tools, combining the R programming language (and in particular the ggplot2 library) and
 org-mode\cite{orgmode}. The tool combination comes at a very low development cost
@@ -1691,7 +1700,7 @@ architecture.  The large workload brings interesting insights
 on pinpointing resource usage mistakes and comparing three StarPU schedulers
 (DMDA, DMDAS and Work Stealing). The smaller workload
 shows that the dynamic critical path analysis
-provide hints for optimizations.
+provides hints for optimizations.
 
 Section\ref{sec.context} provides some background on task-based
 runtimes for hybrid platforms and on the Cholesky algorithm.
@@ -1749,12 +1758,12 @@ recent years.
 MAGMA\cite{agullo2009magma}, for instance, combines
 multi-core with GPUs for linear algebra applications. OmpSs\cite{duran2011ompss}
 provides an extension to OpenMP tasks through new directives that
-allow to support multi-core systems combined with
+allow supporting multi-core systems combined with
 GPUs. PaRSEC\cite{bosilca2012parsec} is a generic framework for
 architecture aware scheduling of tasks on many-core heterogeneous
 clusters. StarPU\cite{augonnet2011starpu} is a task parallelism
 runtime initially designed to exploit hybrid architectures and 
-additionally providing a
+additionally providing an
 MPI-based extension\cite{augonnet2012starpumpi} to exploit several
 nodes at once. Dense/sparse linear algebra have been among the first
 applications to exploit such runtimes but other applications have been
@@ -1849,7 +1858,7 @@ Hence, \DPOTRF tasks can only be run on CPUs.
 
 #+BEGIN_LaTeX
 \begin{figure}[!htb]
-\vspace{-.5cm}
+\vspace{-.8cm}
 \centering
 \subfloat[The Cholesky Algorithm.\label{fig:cholesky}]{%
 \begin{minipage}[b]{.475\linewidth}
@@ -1857,14 +1866,16 @@ Hence, \DPOTRF tasks can only be run on CPUs.
 \end{minipage}}
 \hfill
 \subfloat[Corresponding DAG for $N=5$.\label{fig:dag5x5}]{\includegraphics[width=.475\linewidth]{dag-5x5-crop.pdf}}
+\vspace{-.1cm}
 \caption{The Cholesky code and its DAG (for $N=5$).}
 \label{fig:dag5}
+\vspace{-.3cm}
 \end{figure}
 #+END_LaTeX
 
 Since hybrid heterogeneous nodes motivate the development of
 task-based runtimes,  we execute
-this Cholesky implementation over IdCin2, a machine with two
+this Cholesky implementation on IdCin2, a machine with two
 14-core Intel(R) Xeon(R) CPU E5-2697v3@2.6GHz and three
 NVIDIA Titan X. From this set of resources, only 25 CPU cores
 participate in the computation because it is generally more efficient
@@ -1880,7 +1891,7 @@ scheduled on this particular resource. Such a scheduler therefore
 never leaves a resource idle on purpose, which ensures the
 well-known $(2-1/p)$ competitive ratio for homogeneous
 machines\cite{Graham66}. Deciding which ready task to select has a major
-influence in practice and the classical heuristic consists on
+influence in practice and the classical heuristic consists of
 prioritizing tasks based on the critical path. However, the
 critical path notion is dynamic and obtaining a proper estimation can be quite
 challenging. With heterogeneous computing resources, such
@@ -1919,7 +1930,7 @@ visualization strategies for BSP and DAG-based applications to better
 understand their differences. We also describe the design challenges 
 of novel trace visualization techniques for DAG applications, as well
 as the typical questions usually raised during the analysis process.
-
+#+LATEX: \vspace{-0.1cm}
 *** Trace visualization analysis for BSP-based applications
 
 Many tools exist to visualize traces from BSP-based
@@ -1933,15 +1944,14 @@ to destination, sometimes annotated with the amount of
 transferred data. Vite\cite{Vite2009} is an OpenGL-based
 open-source tool that has such a view, capable to visualize
 large traces with thread states and communication.
-Since this tool relies in the semantic-free 
+Since this tool relies on the semantic-free 
 Paje language\cite{pajelang}, it can depict virtually any kind of
 traces. Paraver\cite{pillet1995paraver} is another open-source
-Gantt tool that allows filtering, zooming and
-graphical trace aggregation. Its format also enables the visualization
-of many HPC programming
-models combinations. Vampir\cite{knupfer2008vampir} is a
-closed-source visualization tool with multiple views for MPI-based
-OTF2 trace files.
+Gantt tool that allows filtering, zooming, and
+graphical trace aggregation. Its trace format supports 
+many HPC programming
+models. Vampir\cite{knupfer2008vampir} is a proprietary
+tool with multiple views for OTF2 traces.
  It is more scalable than similar tools due to its
  distributed organization.
 
@@ -1960,8 +1970,17 @@ the time dimension and task duration, which can make performance analysis
 difficult.
 #+Latex: %
 #+Latex: %
-Kurzak\cite{kurzak2015taskdep} proposes an interactive Gantt chart
-enhanced with dependencies, drawn as edges between tasks. We believe
+Temanejo\cite{keller2012temanejo} provides a similar timeless DAG
+interactive views for many task-based runtimes. Its main
+features are
+the debug capabilities, e.g. the user can put a breakpoint in a task
+and fix its dependencies. These capabilities are very useful during
+algorithm design on small scale, being unsuited for
+performance analysis
+#+Latex: %
+#+Latex: %
+Haugen \etal proposes an interactive Gantt chart
+enhanced with dependencies, drawn as edges between tasks \cite{kurzak2015taskdep}. We believe
 this approach suffers from three issues. First, in term of
 scalability, since (\eg in
 Cholesky) tasks typically have many ($\scriptstyle \approx N$) dependencies,
@@ -1982,15 +2001,15 @@ of scheduling decisions induced by actual resource availability and
 by the task execution variability hinders the performance reproducibility.
 Moreover, executions are
 apparently unstructured, with no clear phases as in the BSP model. At
-the same time, task dependencies are part of the application, and
+the same time, task dependencies are part of the application and
 should be exploited by the analyst to understand bottlenecks.
 
 Traces are generally much larger than the available screen
 space and naively displaying everything generally leads to biased
 views\cite{schnorr2013fits}. 
-One therefore has to use selection schemes to show only data that is
+One, therefore, has to use selection schemes to show only data that is
 fully relevant from the analysis point of view. 
-In such complex execution traces, many hypothesis (and thus filters) 
+In such complex execution traces, many hypotheses (and thus filters) 
 can be proposed regarding the expected behavior. 
 Developing a monolithic tool, such as the ones tailored for BSP analysis, that
 anticipates all possible performance problems is thus impractical. Moreover, such tool would be
@@ -2004,7 +2023,7 @@ applications. Instead of inspecting whether and why a certain algorithm
 iteration or phase was slowed down, one needs to analyze if the tasks
 were properly scheduled and if sufficient parallelism is available. 
 One also needs to examine whether complex data
-movement techniques, task submission and many internal runtime
+movement techniques, task submission, and many internal runtime
 mechanisms can be further improved.
 
 # Use of \ie is wrong when we want to say "for example"
@@ -2099,13 +2118,13 @@ in Figures\ref{fig:large_2_comparison} and\ref{fig:small_2_comparison}.
 
 Visualizing data allows to graphically check many assumptions at once.
 It helps with assumptions that are difficult to formally state
-or for which defining a proper statistical test would require to build
+or for which defining a proper statistical test would require building
 on even more hypothesis that would also have to be verified.
 This is why it is important to start by listing various hypothesis (or
 expectations) made on the system under study. From such list, a set of
-visualizations can be generated. We propose visualization that are
-therefore designed for the application and scheduler
-developers, assisting them to rapidly identify performance problems
+visualizations can be generated. We propose visualizations that are
+designed for the application and scheduler
+developers, assisting them to rapidly identify performance issues
 as well as potential solutions.
 
 The set of hypothesis to check is fairly rich in heterogeneous
@@ -2113,10 +2132,10 @@ platforms targeted by task-based runtime systems. It is thus important
 to build a visualization framework that allows to
 easily and rapidly *combine various views* and *propose new alternative views
 in an agile way*. Moreover, since dynamic scheduling and machine
-heterogeneity bring a lot of variability, the ideal visualization
+heterogeneity bring a lot of variabilities, the ideal visualization
 should *exploit* any *potential regularity* coming
 from the *application algorithm*. For example, as we have seen in
-Figure\ref{fig:dag5}, each task can be identified by the loop indexes $i,j,k$.
+Figure\ref{fig:dag5}, each task can be identified by the loop indices $i,j,k$.
 Such kind of information is much more useful
 than the internal runtime task identification and should thus be
 provided by the application to the runtime so that it can be traced
@@ -2134,8 +2153,8 @@ complex monolithic tool, we follow the UNIX philosophy and
 script many small tools. Using =pjdump=, the paje trace is converted
 into a Comma-Separated Values (CSV) file that can be
 loaded into =R=. Thanks to the expressiveness and to the rich set of
-statistical libraries of the =R= language, many cleanups, filtering and
-statistic computations can be done with few lines of code. The
+statistical libraries of the =R= language, many cleanups, filtering,
+statistic computations, and adaptation to another application than Cholesky can be done with few lines of code. The
 =ggplot= library provides a grammar of graphics and a very high-level
 way of building plots, enabling us to easily produce custom visualizations.
 This environment has enough expressiveness to guarantee
@@ -2144,14 +2163,16 @@ scales, etc.).
 
 #+BEGIN_LaTeX
 \begin{figure}[!htb]
+\vspace{-.25cm}
 \centering
 \includegraphics[width=\linewidth]{combo.pdf}%
 \caption{Combining data analytics tools to create trace views.}
 \label{fig:combo}
+\vspace{-.24cm}
 \end{figure}
 #+END_LaTeX
 
-This approach allows to build static views in a fully
+This approach allows building static views in a fully
 automatic and very efficient way. Although such visualizations could
 probably be sped up even further by programming everything in C/C++,
 the used libraries are already well optimized and benefit
@@ -2166,12 +2187,12 @@ Section\ref{sec.relatedwork}.  Interaction is often crucial
 for the analyst to find what he is looking for. This is why we also
 build on =plotly=, an online analytics tool, that
 enables the quick conversion of ggplots into interactive, online
-graphs usable with a classical web browser.
+graphs usable with a classical web browser (see \url{https://plot.ly/ggplot2/} for more details).
 Two illustrations in this article are also available in an interactive
 version. We
 strongly believe that putting interaction at the very end together
 with the scripting capabilities in the core of the analysis process is
-the key to carry out the analysis of complex execution traces.
+the key to carrying out the analysis of complex execution traces.
 
 Finally, loading and merging several traces 
 enables faithful comparisons and even produces
@@ -2229,8 +2250,8 @@ incorporated.
 
 #+LaTeX: \noindent
 *Dependency problems*. Large input matrices generate many
-tasks, especially when the application starts. We
-therefore want to monitor the number of ready and submitted tasks. For
+tasks, especially when the application starts. We,
+therefore, want to monitor the number of ready and submitted tasks. For
 this Cholesky implementation, all tasks are expected to be
 submitted when the application starts.  On scale, the number of task
 dependencies is extremely large. Automatically selecting which ones to
@@ -2253,7 +2274,7 @@ classical semi-sequential execution, the DAG would be executed much
 similarly to a /breadth/-first search. However, it is also
 possible to carry out a /depth/-first traversal, favoring task execution
 on the critical path. Following the pipelining of the sets of tasks
-submitted by each outer loop interation can be sufficient to get an
+submitted by each outer loop iteration can be sufficient to get an
 overview of how the scheduler is handling the DAG and if it
 corresponds to the analyst's intuition or not.
 
@@ -2298,7 +2319,7 @@ corresponds to the analyst's intuition or not.
   \end{array}$%\hspace{-.5cm}
 %\end{minipage}
 \egroup
-\vspace{-.5cm}
+\vspace{-.6cm}
 \end{figure*}
 #+END_LaTeX
 
@@ -2316,7 +2337,9 @@ $i$ and that the $\alpha_{i,k}$ should thus verify:
 
 #+BEGIN_LaTeX
 \begin{equation*}
+ \setlength{\abovedisplayskip}{-.2cm} \setlength{\abovedisplayshortskip}{-.2cm}
   \forall i: \sum_k \alpha_{i,k}.n_{i,k}.w_{i,k} \leq T
+\vspace{-.15cm}
 \end{equation*}
 #+END_LaTeX
 
@@ -2324,9 +2347,9 @@ Since such constraints are linear it is possible to compute the
 optimal makespan $T$ and allocation $\alpha_{i,k}$. The $T$ value is called
 the *Area Bound Estimation* (ABE) and is a lower bound for the execution
 time. Another classical lower bound is the *Critical Path Bound
-Estimation* (CPE). It is obtained by assigning each task on its faster
+Estimation* (CPE). It is obtained by assigning each task to its faster
 processing resource and by summing all durations along the DAG. These
-execution time bounds, in particular the ABE when the workload is
+execution time bounds, in particular, the ABE when the workload is
 large, are quite useful to estimate how much further improvement can
 be expected. More accurate lower bounds\cite{suraj15} could be used as
 well, in particular for intermediate size workloads. Moreover, an
@@ -2373,13 +2396,17 @@ number of ready tasks.
 Such GPUs starvation is more likely explained either by data
 prefetching problem (some tasks are ready but their input
 data is not yet transferred to GPUs) or possibly by some priority
-problem (the priorities, used by the scheduler to choose which task to
-schedule first when several of them are ready, might be
-inadequate). The first explanation is likely to be the right one
+issue (the priorities, used by the scheduler to choose which task to
+run first when several of them are ready, might be
+inadequate). The first reason is likely to be the right one
 here. Indeed, most large idle periods on GPUs and
 large periods of times where CPUs are not doing useful computations
 (in white) also coincide with abnormal \DGEMM tasks (in dark green) on
-GPUs. An investigation (such as the one of
+GPUs. Note that the scripting feature allow us to show only tasks of a
+given type, resource, within a specific time interval, and whose
+duration is larger than a threshold and therefore clear any doubt the
+analyst may have.
+An investigation (such as the one of
 Section\ref{sec.small_matrices}) reveals that, for an
 unknown reason, the GPUs seem to freeze during a task execution inside
 the proprietary CUBLAS \DGEMM kernel, ultimately blocking tasks
@@ -2387,19 +2414,19 @@ eagerly waiting for GPU data. Understanding why GPUs
 sometimes get stuck  would certainly
 solve the issue but this clearly suggests a weakness of the chosen
 scheduler which assumes that tasks duration have small variability.
-Using *other schedulers may therefore alleviate this*.
+Using *other schedulers may, therefore, alleviate this*.
 
 The four plots depicted in Figure\ref{fig:large_2_pinpointing}(e) show
 the ideal allocation when calculating the ABE. They show how the GPUs
 have been overused with \DGEMM tasks and under-exploited for \DSYRK
-and \DTRSM tasks. It therefore suggests to *constrain the \DSYRK and \DTRSM
+and \DTRSM tasks. It, therefore, suggests *constraining the \DSYRK and \DTRSM
 tasks to run exclusively on GPUs*.
 
 # #+LaTeX: \LMS{There referred problem (see final words on the above paragraph) appear in multiple execution traces, or just in this particular one?}
 
 **** Comparing Scheduling Strategies and Task Constraints
 
-The previous analysis lead us to vary the
+The previous analysis leads us to vary the
 scheduler (DMDA, DMDAS, WS) and to force or not the \DSYRK/\DTRSM allocation on GPUs. Figure\ref{fig:large_2_comparison}
 provides the six-scenario comparison.
 
@@ -2414,9 +2441,10 @@ provides the six-scenario comparison.
   }} &
 \multicolumn{3}{c}{\includegraphics[width=.965\linewidth]{comparison-3-sched-original-vs-forcing-crop.pdf}}
 \end{tabular}
-\caption{The execution representation of three schedulers (DMDA, DMDAS and Work Stealing), as columns, with unconstrained versus contrained \DSYRK and \DTRSM tasks on GPUs, as rows. Each of the six plots is an instance of the view described in Figure\ref{fig:large_2_pinpointing} (refer to that caption to understand different parts).}
+\vspace{-.2cm}
+\caption{The execution representation of three schedulers (columns), with unconstrained versus constrained \DSYRK/\DTRSM tasks on GPUs(rows). Each of the six plots is an instance of the view of Figure\ref{fig:large_2_pinpointing} (refer to that caption to understand different parts).}
 \label{fig:large_2_comparison}
-\vspace{-.5cm}
+\vspace{-.6cm}
 \end{figure*}
 #+END_LaTeX
 
@@ -2434,10 +2462,10 @@ two other ones.
 
 Second, when constraining the \DSYRK and \DTRSM to run solely on the
 GPUs (the plots on the bottom row of
-Figure\ref{fig:large_2_comparison}), task allocation then
-corresponds to the ideal one. However, if such constraint allows both
+Figure\ref{fig:large_2_comparison}), task allocation 
+corresponds to the ideal one. However, while such constraint allows both
 DMDAS and Work Stealing to obtain near optimal executions (within less
-than 2% of the lower bound), this helped only moderately the DMDA
+than 2% of the lower bound), it helped only moderately the DMDA
 algorithm. Many synchronized idle phases can be observed and imputed
 to both dependency issues (not enough parallelism is obtained from
 such a strict breadth-first traversal) and particularly slow tasks
@@ -2457,7 +2485,7 @@ which can be initially surprising since these estimates only
 depend on the number of tasks and their per-type average execution time
 on the different resources. The observations can be
 explained by the use of sample execution time mean,
-which may vary a bit. From our investigation this variation is not
+which may vary a bit. From our investigation, this variation is not
 explained by outliers occurrence but rather biased toward
 one or another scheduler. We think this is the consequence of a
 better locality (cache usage) but more complex measurements
@@ -2480,7 +2508,7 @@ and we should focus mainly on filtering task dependencies.
 *Idle time everywhere*. Having a lot of idle time is expected
 because of dependencies. It is thus imperative to identify crucial
 tasks, highlighting the ``dynamic critical path'', \ie the last tasks
-upon which they depended. Such important tasks may appear either
+upon which they depended on. Such important tasks may appear either
 because of the DAG structure or because they have been
 particularly delayed.
 
@@ -2494,28 +2522,29 @@ particularly delayed.
 \centering
 \includegraphics[width=\linewidth]{half-size-gantt-dep-outliers-crop.pdf}
 %\vspace{\baselineskip}
+\vspace{-0.5cm}
 \caption{Detailed view (see \url{http://perf-ev-runtime.gforge.inria.fr/vpa2016/}) of a $12\times12$ Cholesky execution (DMDAS scheduler) with two (red and blue) critical paths.}
 \label{fig:small_2_pinpointing}
-\vspace{-.5cm}
+\vspace{-0.7cm}
 \end{figure}
 #+END_LaTeX
 
 Since StarPU also exports the DAG, the dependency information can be
 merged into the trace. For Cholesky,
 the \DPOTRF are critical tasks that release many other tasks. It
-seems therefore relevant to track their dependencies. For a given task
+seems, therefore, relevant to track their dependencies. For a given task
 $T_{i}$, it is possible to compute what was the task $T_{i-1}$ on which it
 depends on and that finished the latest, similarly, for $T_{i-1}$ its
 latest predecessor $T_{i-2}$, etc.
-Such backward tracking of dependencies allows to rebuild the
+Such backward tracking of dependencies allows rebuilding the
 observed critical path. Given the DAG,
 in an ideal execution one would expect a \DPOTRF to be immediately
 preceded by a \DSYRK, immediately preceded by a
-\DTRSM that would in turn be immediately preceded by the \DPOTRF of the
+\DTRSM that would, in turn, be immediately preceded by the \DPOTRF of the
 previous iteration. Therefore, we compute such filtered backward
 dependencies for each \DPOTRF and merge them together.
 
-This is illustrated on Figure\ref{fig:small_2_pinpointing}. The
+This is illustrated in Figure\ref{fig:small_2_pinpointing}. The
 makespan is 730ms while the ABE is 434ms and
 the CPE is 368ms. The bounds may be loose
 but it seems that there is room for improvement. If we start
@@ -2531,7 +2560,9 @@ priority. This critical path does not merge
 with the one obtained for the \DPOTRF of the first iterations. Now, when
 looking at the other (red) dependency path, we can see many times
 that the tasks are scheduled as soon as possible as if there was some *priority
-problem, which could possibly be solved with another scheduler*.
+problem, which could possibly be solved with another scheduler*. The
+scripting feature allows plotting only dependencies whose duration is
+larger than a given threshold, avoiding graphical clutter.
 
 We identify another problem with the blue dependency path. At the end,
  tasks are executed on
@@ -2569,7 +2600,7 @@ combinations for this workload.
               with unconstrained versus constrained \DSYRK and \DTRSM tasks on GPUs, as rows, for a
               $12\times12$ tiled Cholesky decomposition. Each of the six plots is an instance of the view described in Figure\ref{fig:small_2_pinpointing}.}
 \label{fig:small_2_comparison}
-\vspace{-.5cm}
+\vspace{-.4cm}
 \end{figure*}
 #+END_LaTeX
 
@@ -2595,10 +2626,10 @@ makespan would be greatly improved.
 Surprisingly,
 Work Stealing strongly benefits from the imposed restriction and now
 favorably compares against DMDA and DMDAS. It is also interesting to note that WS
-manages to keep all CPUs busy from the very beginning unlike the other
+manages to keep all CPUs busy from the very beginning, unlike the other
 two schedulers. However, GPUs are not fully exploited, in particular
 at the end where they should be used to accelerate the \DGEMMs like the
-DMDA and DMDAS strategy do. If there was a way to prevent \DGEMM task
+DMDA and DMDAS strategies do. If there was a way to prevent \DGEMM task
 execution on CPU after time 350ms, we would probably get the best of
 the two scheduling strategies and be much closer to the optimal
 execution time.
@@ -2655,11 +2686,12 @@ execution time.
 #         this issue)
 #     - _rester dans le problème de priorité_ (pas dire plus que ça)
 
+#+LATEX: \vspace{-0.08cm}
 ** Conclusion
 \label{sec.conclusion}
-
+#+LATEX: \vspace{-0.07cm}
 This article presents how an agile
-scripting framework allows to create faithful and enlightening trace views for the
+scripting framework allows creating faithful and enlightening trace views for the
 performance analysis of task-based HPC applications running on 
 heterogeneous platforms. The framework follows the UNIX philosophy and builds upon many small
 existing tools (pjdump, ggplot2, plotly)
@@ -2670,14 +2702,20 @@ the key to a flexible design.
 We have shown how applying this
 framework in the analysis of large and small scale scenarios based
 on the MORSE/StarPU implementation of the Cholesky factorization
-allows to identify and address several non trivial scheduling problems. 
+allows to identify and address several non-trivial scheduling
+problems. 
+The approach has scalability limitations mostly in the
+graphical representations (static or interactive) and not the
+scripting methodology for creating them. Plotly, for instance, is
+incapable of handling too much data, such as when there
+are many task types or resources.
 # The obtained results have enabled us to fine tune the application,
 # e.g., by constraining the execution of \DTRSM and \DSYRK tasks to GPUs,
 # and to identify priority problems. These priority issues can be
 # solved by improving the priority definition in the Chameleon code. 
 #+LaTeX: %
 #+LaTeX: %
-As future work, we intend to improve the interactive views by using
+As future work, we intend to improve the interactive graphical views by using
 temporal aggregation to reduce trace size and improve the integration
 between performance visualization and runtime debugging. We also
 intend to extend this approach to analyze the behavior of irregular
@@ -2691,14 +2729,12 @@ task-based workloads\cite{agullo2013multifrontal}.
 
 #+LATEX:\subsubsection*{Acknowledgements}
 
-This research has received funding from the CAPES/Cofecub project
-764-13, the EU/H2020 and the MCTI/RNP-Brazil under the
-HPC4E Project with the grant 689772, the FAPERGS/Inria ExaSE
-project, the CNPq 447311/2014-0, and the CNRS/LICIA
-Intl. Lab. We also thank Emmanuel Agullo, Lionel Eyraud-Dubois and
-Suraj Kumar for their help in better understanding the traces
-and the visualization requirements of the runtime scheduler
-developers.
+This work was supported by the projects: CAPES/Cofecub 764-13,
+FAPERGS/Inria ExaSE, CNPq 447311/2014-0, HPC4E 689772 from EU/H2020
+and MCTI/RNP-Brazil, and the CNRS/LICIA Intl. Lab. We also thank
+Emmanuel Agullo, Lionel Eyraud-Dubois, and Suraj Kumar for their help
+in better understanding the traces and the visualization needs
+of the runtime scheduler developers.
 
 ** References                                                        :ignore:
 
@@ -2715,7 +2751,7 @@ Tangle this file with C-c C-v t
 
 
 @misc{Vite2009,
-  title = {Visual trace explorer (ViTE)},
+  title = {{Visual trace explorer ViTE}},
   author = {Coulomb, Kevin and Faverge, Mathieu and Jazeix, Johnny and Lagrasse, Olivier and Marcoueille, Jule and Noisette, Pascal and Redondy, Arthur and Vuchener, Clément}, 
 }
 
@@ -2733,9 +2769,8 @@ ISSN={1045-9219}, }
 
 @inproceedings{huynh2015dagviz,
  author = {Huynh, An and Thain, Douglas and Peric\`{a}s, Miquel and Taura, Kenjiro},
- title = {DAGViz: A DAG Visualization Tool for Analyzing Task-parallel Program Traces},
- booktitle = {Proceedings of the 2nd Workshop on Visual Performance Analysis},
- series = {VPA '15},
+ title = {{DAGViz: A DAG Visualization Tool for Analyzing Task-parallel Program Traces}},
+ booktitle = {Proc. 2nd Workshop Visual Perf. Analysis (VPA'15)},
  year = {2015},
  isbn = {978-1-4503-4013-7},
  location = {Austin, Texas},
@@ -2745,15 +2780,13 @@ ISSN={1045-9219}, }
  doi = {10.1145/2835238.2835241},
  acmid = {2835241},
  publisher = {ACM},
- address = {New York, NY, USA},
  keywords = {DAG visualization, performance analysis, profiler, task parallel, tracer},
 } 
 
 @inproceedings{kurzak2015taskdep,
  author = {Haugen, Blake and Richmond, Stephen and Kurzak, Jakub and Steed, Chad A. and Dongarra, Jack},
  title = {Visualizing Execution Traces with Task Dependencies},
- booktitle = {Proceedings of the 2nd Workshop on Visual Performance Analysis},
- series = {VPA '15},
+ booktitle = {Proc. 2nd Workshop Visual Perf. Analysis (VPA'15)},
  year = {2015},
  isbn = {978-1-4503-4013-7},
  location = {Austin, Texas},
@@ -2763,7 +2796,6 @@ ISSN={1045-9219}, }
  doi = {10.1145/2835238.2835240},
  acmid = {2835240},
  publisher = {ACM},
- address = {New York, NY, USA},
  keywords = {DAG, data movement, execution trace, task-based scheduling},
 } 
 
@@ -2778,7 +2810,7 @@ ISSN={1045-9219}, }
 }
 
 @incollection{knupfer2008vampir,
-  title={The Vampir performance analysis tool-set},
+  title={The {Vampir} performance analysis tool-set},
   author={Kn{\"u}pfer, Andreas and Brunst, Holger and Doleschal, Jens and Jurenz, Matthias and Lieber, Matthias and Mickler, Holger and M{\"u}ller, Matthias S and Nagel, Wolfgang E},
   booktitle={Tools for High Perf. Comp.},
   pages={139--155},
@@ -2802,7 +2834,7 @@ ISSN={1045-9219}, }
 }
 
 @article{augonnet2011starpu,
-  title={StarPU: a unified platform for task scheduling on heterogeneous multicore architectures},
+  title={{StarPU}: a unified platform for task scheduling on heterogeneous multicore architectures},
   author={Augonnet, C{\'e}dric and Thibault, Samuel and Namyst, Raymond and Wacrenier, Pierre-Andr{\'e}},
   journal={Conc. and Comp.: Pract. and Exp.},
   volume={23},
@@ -2814,8 +2846,7 @@ ISSN={1045-9219}, }
 @inproceedings{augonnet2012starpumpi,
  author = {Augonnet, C{\'e}dric and Aumage, Olivier and Furmento, Nathalie and Namyst, Raymond and Thibault, Samuel},
  title = {{StarPU-MPI}: Task Programming over Clusters of Machines Enhanced with Accelerators},
- booktitle = {Proceedings of the 19th European Conference on Recent Advances in the Message Passing Interface},
- series = {EuroMPI'12},
+ booktitle = {Proc. European Conf. Recent Advances in the Message Passing Interface (EuroMPI)},
  year = {2012},
  isbn = {978-3-642-33517-4},
  location = {Vienna, Austria},
@@ -2823,18 +2854,17 @@ ISSN={1045-9219}, }
  numpages = {2},
  doi = {10.1007/978-3-642-33518-1_40},
  acmid = {2404084},
- publisher = {Springer-Verlag},
- address = {Berlin, Heidelberg},
+ publisher = {Springer},
  keywords = {GPUs, MPI, accelerators, task-based model},
 } 
 
 @inproceedings{ohshima2013FEMstarpu,
+  year = {2013},
   title = {{Implementation of FEM Application on GPU with StarPU}},
   author = {Ohshima, Satoshi and Katagiri, Satoshi and Nakajima, Kengo and Thibault, Samuel and Namyst, Raymond},
-  booktitle = {SIAM Conference on Computational Science and Engineering 2013}},
+  booktitle = {SIAM Conference on Computational Science and Engineering}},
   address = {Boston, United States},
   organization = {{SIAM}},
-  year = {2013},
 }
 
 @inproceedings{martinez2015towards,
@@ -2896,7 +2926,7 @@ Luszczek and Stanimire Tomov},
 }
 
 @article{duran2011ompss,
-  title={Ompss: a proposal for programming heterogeneous multi-core architectures},
+  title={{OmpSs}: a proposal for programming heterogeneous multi-core architectures},
   author={Duran, Alejandro and Ayguad{\'e}, Eduard and Badia, Rosa M and Labarta, Jes{\'u}s and Martinell, Luis and Martorell, Xavier and Planas, Judit},
   journal={Par. Proc. Letters},
   volume={21},
@@ -2906,13 +2936,11 @@ Luszczek and Stanimire Tomov},
 }
 
 @article{bosilca2012parsec,
-title = "DAGuE: A generic distributed \{DAG\} engine for High Performance Computing ",
-journal = "Parallel Computing ",
+title = "{DAGuE}: A generic distributed {DAG} engine for High Performance Computing ",
+journal = "Parallel Computing",
 volume = "38",
 number = "1–2",
-pages = "37 - 51",
 year = "2012",
-note = "Extensions for Next-Generation Parallel Programming Models ",
 issn = "0167-8191",
 author = "George Bosilca and Aurelien Bouteiller and Anthony Danalis and Thomas Herault and Pierre Lemarinier and Jack Dongarra",
 keywords = "HPC",
@@ -2965,10 +2993,9 @@ year = {1966},
 
 @TECHREPORT{pajelang,
   title = {The {Paje} trace file format},
-  author = {Lucas Mello Schnorr and Mathieu Faverge and François Trahay and Benhur de Oliveira Stein and Jacques Chassin de Kergommeaux},
+  author = {Lucas Mello Schnorr and Mathieu Faverge and François Trahay and Benhur Oliveira Stein and Jacques Chassin de Kergommeaux},
   institution = {UFRGS},
-  year = 2016,
-  url = {http://github.com/schnorr/pajeng/},
+  year = 2016
 }
 
 @book{gropp1999using,
@@ -3011,7 +3038,7 @@ year = {1966},
 @incollection{schnorr2013fits,
   title={Visualizing More Performance Data Than What Fits on Your Screen},
   author={Schnorr, Lucas M and Legrand, Arnaud},
-  booktitle={Tools for High Performance Computing 2012},
+  booktitle={Tools for High Perf. Comp.},
   pages={149--162},
   year={2013},
   publisher={Springer}
@@ -3024,5 +3051,21 @@ year = {1966},
   pages={521--532},
   year={2013},
   organization={Springer}
+}
+
+@Inbook{keller2012temanejo,
+author="Keller, Rainer
+and Brinkmann, Steffen
+and Gracia, Jos{\'e}
+and Niethammer, Christoph",
+editor="Brunst, Holger
+and M{\"u}ller, S. Matthias
+and Nagel, E. Wolfgang
+and Resch, M. Michael",
+title="Temanejo: Debugging of Thread-Based Task-Parallel Programs in StarSS",
+bookTitle="Tools for High Performance Computing 2011: Proceedings of the 5th International Workshop on Parallel Tools for High Performance Computing, September 2011, ZIH, Dresden",
+year="2012",
+publisher="Springer",
+pages="131--137",
 }
 #+end_src
